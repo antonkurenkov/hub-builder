@@ -1,0 +1,2 @@
+ruamel.yaml
+jina==0.1.8
