@@ -95,15 +95,16 @@ def clean_docker():
 
 
 def get_update_targets():
-    try:
-        with open(build_hist_path, 'r') as fp:
-            hist = json.load(fp)
-            last_build_time = hist.get('LastBuildTime', {})
-            # backward support
-            if not isinstance(last_build_time, dict):
-                last_build_time = {}
-    except:
-        raise ValueError('can not fetch "LastBuildTime" from build-history.json')
+    # try:
+    #     with open(build_hist_path, 'r') as fp:
+    #         hist = json.load(fp)
+    #         last_build_time = hist.get('LastBuildTime', {})
+    #         # backward support
+    #         if not isinstance(last_build_time, dict):
+    #             last_build_time = {}
+    # except:
+    #     raise ValueError('can not fetch "LastBuildTime" from build-history.json')
+    last_build_time = {}
 
     print(f'last build time: {last_build_time}')
 
@@ -139,21 +140,24 @@ def get_update_targets():
 
 
 def get_canonic_name(target):
-    return os.path.relpath(target).replace('/', '.')
+    return os.path.relpath(target).replace('/', '.')[3:]
 
 
 def build_multi_targets(args):
-    try:
-        with open(build_hist_path, 'r') as fp:
-            hist = json.load(fp)
-            image_map = hist.get('Images', {})
-            status_map = hist.get('LastBuildStatus', {})
-            last_build_time = hist.get('LastBuildTime', {})
-            # backward support
-            if not isinstance(last_build_time, dict):
-                last_build_time = {}
-    except:
-        raise ValueError('can not fetch "LastBuildTime" from build-history.json')
+    # try:
+    #     with open(build_hist_path, 'r') as fp:
+    #         hist = json.load(fp)
+    #         image_map = hist.get('Images', {})
+    #         status_map = hist.get('LastBuildStatus', {})
+    #         last_build_time = hist.get('LastBuildTime', {})
+    #         # backward support
+    #         if not isinstance(last_build_time, dict):
+    #             last_build_time = {}
+    # except:
+    #     raise ValueError('can not fetch "LastBuildTime" from build-history.json')
+    image_map = {}
+    status_map = {}
+    last_build_time = {}
 
     update_targets, is_builder_updated = get_update_targets()
 
@@ -208,7 +212,7 @@ def build_multi_targets(args):
         print('noting to build')
 
     # update json track
-    with open(build_hist_path, 'w') as fp:
+    with open(build_hist_path, 'w+') as fp:
         json.dump({
             'LastBuildTime': last_build_time,
             'LastBuildReason': args.reason,
@@ -217,7 +221,7 @@ def build_multi_targets(args):
             'Images': image_map,
         }, fp)
 
-    update_hub_badge(len(image_map))
+    # update_hub_badge(len(image_map))
     print('delivery success')
 
 
@@ -265,7 +269,7 @@ def build_target(args):
         else:
             return
 
-    image_canonical_name = os.path.relpath(args.target).replace('/', '.')
+    image_canonical_name = get_canonic_name(args.target)
     check_image_name(image_canonical_name)
 
     with open(os.path.join(cur_dir, 'manifest.yml')) as fp:
