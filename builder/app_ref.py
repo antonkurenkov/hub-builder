@@ -1,15 +1,14 @@
 import argparse
 import json
 import os
-import pathlib
 import re
 import shutil
 import subprocess
 import unicodedata
-import string
 from datetime import datetime
 import time
 from pathlib import Path
+import requests
 
 from jina.flow import Flow
 from ruamel.yaml import YAML
@@ -32,7 +31,6 @@ image_tag_regex = r'^hub.[a-zA-Z_$][a-zA-Z_\s\-\.$0-9]*$'
 label_prefix = 'ai.jina.hub.'
 docker_registry = 'jinaai/'
 
-# current date and time
 builder_files = list(Path(root_dir).glob('builder/app.py')) + \
                 list(Path(root_dir).glob('builder/*.yml'))
 
@@ -40,9 +38,11 @@ build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
 readme_path = os.path.join(root_dir, 'status', 'README.md')
 hubbadge_path = os.path.join(root_dir, 'status', 'hub-stat.svg')
 
-hub_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
+valid_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
             list(Path(root_dir).glob('hub/**/*Dockerfile')) + \
             list(Path(root_dir).glob('hub/**/*.py'))
+ignore_files = list(Path(root_dir).glob('hub/**/jina/**/*'))
+hub_files = list(set(valid_files) - set(ignore_files))
 
 builder_revision = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
 build_badge_regex = r'<!-- START_BUILD_BADGE -->(.*)<!-- END_BUILD_BADGE -->'
@@ -72,7 +72,7 @@ class Validator:
     def check_image_canonical_name(self):
         if not re.match(image_tag_regex, self.image_canonical_name):
             raise ValueError(
-                f'{self} is not a valid image name for a Jina Hub image, it should match with {image_tag_regex}'
+                f'{self.image_canonical_name} is not a valid image name for a Jina Hub image, it should match with {image_tag_regex}'
             )
 
     def check_name(self):
@@ -105,8 +105,8 @@ class Validator:
 
     @staticmethod
     def check_image_in_hub(img_name):
+        print('\033[32m' + f'Pulling image ' + '\033[0m' + f'{img_name}\n' )
         subprocess.check_call(['docker', 'pull', img_name])
-
 
 
 class SingleBuilder(Validator):
@@ -118,26 +118,27 @@ class SingleBuilder(Validator):
         self.push: bool = args.push
         self.test: bool = args.test
         self.error_on_empty: bool = args.error_on_empty
-        self.check_only: bool = args.check_only
+        self.check_targets: bool = args.check_targets
         self.bleach_first: bool = args.bleach_first
 
         self.dockerfile_path = None
         self.manifest_path = None
         self.image_canonical_name = None
         self.manifest = None
+        self.img_name = ''
+        self.last_build_time = {}
 
     def run(self):
         if self.construct_paths():
             self.load_manifest()
             self.validate_schema()
-            self.update_fields()
+            self.load_fields_from_manifest()
             self.check_chain()
 
             self.img_name = self.build_image()
             self.pushing()
 
             self.check_image_in_hub(self.img_name)
-            # self.img_name = f'{docker_registry}{self.image_canonical_name}:{self.manifest["version"]}'
             self.testing(self.img_name)
 
     def construct_paths(self):
@@ -153,7 +154,8 @@ class SingleBuilder(Validator):
         with open(self.manifest_path) as yml:
             self.manifest = yaml.load(yml)
 
-    def update_fields(self):
+    def load_fields_from_manifest(self):
+        print('\033[33m' + f'\nManifest file ' + '\033[0m' + f'{self.manifest_path}:')
         for key, value in self.manifest.items():
             updated_value = self.remove_control_characters(value)
             if updated_value != value:
@@ -169,7 +171,7 @@ class SingleBuilder(Validator):
 
     def add_platform_revision_source(self):
         self.manifest['platform'] = self.manifest.get('platform') or []
-        print('\033[35m' + f"platform: {self.manifest['platform'] or 'Undefined'}" + '\033[0m')
+        print('\033[35m' + f"platform: {self.manifest['platform'] or '---'}" + '\033[0m')
 
         self.manifest['revision'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
         print('\033[35m' + f"revision: {self.manifest['revision']}" + '\033[0m')
@@ -187,16 +189,16 @@ class SingleBuilder(Validator):
                     revised_dockerfile.append(
                         ' \\      \n'.join(f'{label_prefix}{k}="{v}"' for k, v in self.manifest.items())
                     )
-        print('\033[32m' + f'\nDockerfile on ' + '\033[0m' + f'{self.dockerfile_path}:\n')
+        print('\033[33m' + f'Dockerfile on ' + '\033[0m' + f'{self.dockerfile_path}:')
         for line in revised_dockerfile:
             if line != '\n':
-                print('\033[35m' + line + '\033[35m')
-        print()
+                print('\033[35m' + line.strip('\n') + '\033[35m')
 
         with open(self.dockerfile_path + '.tmp', 'w') as fp:
             fp.writelines(revised_dockerfile)
 
-        shutil.copytree(src=jinasrc_dir, dst=os.path.join(self.target, 'jina'))
+        if not os.path.isdir(os.path.join(self.target, 'jina')):
+            shutil.copytree(src=jinasrc_dir, dst=os.path.join(self.target, 'jina'))
 
         dockerbuild_cmd = ['docker', 'buildx', 'build']
 
@@ -211,23 +213,26 @@ class SingleBuilder(Validator):
             if self.manifest['platform'] else []
         dockerbuild_action = '--push' if self.push else '--load'
         docker_cmd = dockerbuild_cmd + dockerbuild_platform + dockerbuild_args + [dockerbuild_action, self.target]
+
+        print('\033[32m' + '\nStarting docker build for image ' + '\033[0m' + f'{self.image_canonical_name}')
         subprocess.check_call(docker_cmd)
 
-        print('\033[34m' + 'Building finished successfully!' + '\033[0m')
+        print('\033[32m' + 'Successfully built image ' + '\033[0m' + f'{self.image_canonical_name}')
+        self.last_build_time[self.image_canonical_name] = int(time.time())
         return image_name
 
     def testing(self, img_name):
         if self.test:
-            print('\033[32m' + 'testing image with docker run' + '\033[0m')
+            print('\033[32m' + 'Testing image with docker run...' + '\033[0m')
             subprocess.check_call(['docker', 'run', '--rm', img_name, '--max-idle-time', '5', '--shutdown-idle'])
 
-            print('\033[32m' + 'testing image with jina cli' + '\033[0m')
+            print('\033[32m' + 'Testing image with jina cli...' + '\033[0m')
             subprocess.check_call(['jina', 'pod', '--image', img_name, '--max-idle-time', '5', '--shutdown-idle'])
 
-            print('\033[32m' + 'testing image with jina flow API' + '\033[0m')
+            print('\033[32m' + 'Testing image with jina flow API...' + '\033[0m')
             with Flow().add(image=img_name, replicas=3).build():
                 pass
-            print('\033[34m' + 'All tests passed successfully!' + '\033[0m')
+            print('\033[32m' + 'All tests passed successfully!' + '\033[0m')
 
     def pushing(self):
         if self.push:
@@ -243,65 +248,64 @@ class SingleBuilder(Validator):
                                  '-e', 'README_FILEPATH=/workspace/README.md',
                                  'peterevans/dockerhub-description:2.1']
             subprocess.check_call(docker_readme_cmd)
-            print('\033[34m' + 'Readme upload finished successfully!' + '\033[0m')
+            print('\033[32m' + 'Readme upload finished successfully!' + '\033[0m')
 
 
 class MultiBuilder(SingleBuilder):
 
     def __init__(self, args):
         super().__init__(args)
-        # self.target: str = args.target #  ТОЧНО НЕ НУЖЕН
-
-        # self.reason: str = args.reason #  ВЕРОЯТНО МОЖНО УДАЛИТЬ, Т.К инициируются в родительском классе
-        # self.push: bool = args.push
-        # self.test: bool = args.test
-        # self.error_on_empty: bool = args.error_on_empty
-        # self.check_only: bool = args.check_only
-        # self.bleach_first: bool = args.bleach_first
 
         self.image_map = {}
         self.status_map = {}
-        self.last_build_time = {}
+        # self.last_build_time = {}
         self.last_builder_update_timestamp = 0
-
         self.img_name = ''
 
     def run(self):
         self.load_build_history()
         self.load_builder_update_history()
-        update_targets, is_builder_updated = self.get_targets()
 
-        if update_targets:
-            if is_builder_updated:
-                self.set_reason(targets=update_targets, reason='builder was updated')
+        update_targets, is_builder_updated = self.get_targets()
+        if not self.check_targets:
+            if update_targets:
+                if is_builder_updated:
+                    self.set_reason(targets=update_targets, reason='builder was updated')
+                else:
+                    self.set_reason(targets=update_targets, reason='manual update')
+                self.build_factory(targets=update_targets)
+                self.update_readme()
             else:
-                self.set_reason(targets=update_targets, reason='manual update')
-            self.build_factory(targets=update_targets)
-            self.update_readme()
-        else:
-            self.set_reason(targets=None, reason='empty target set')
-            print('\033[34m' + 'Noting to build' + '\033[0m')
+                self.set_reason(targets=None, reason='empty target set')
+                print('\033[32m' + 'Noting to build' + '\033[0m')
+            self.update_json_track()
+            self.update_hub_badge()
+            print('\033[32m' + 'Delivery finished successfully!' + '\033[0m')
 
     def load_build_history(self):
-        try:
+        if os.path.isfile(build_hist_path):
             with open(build_hist_path, 'r') as fp:
                 hist = json.load(fp)
-        except FileNotFoundError:
-            print('\033[32m' + '\nCan\'t fetch "LastBuildTime" from build-history.json' + '\033[0m')
-            print('\033[32m' + 'Initiating new one ...\n' + '\033[0m')
+                self.last_build_time = hist.get('LastBuildTime', {})
+                print('\033[32m' + f'\nLast build time:' + '\033[0m')
+                print(
+                    *[f'[{name}] -> {get_hr_time(timestamp)}' for name, timestamp in self.last_build_time.items()],
+                    sep='\n'
+                )
+
+        else:
+            print('\033[32m' + f'\nCan\'t load build history from ' + '\033[0m' + f'{build_hist_path}')
             hist = {}
 
         self.image_map = hist.get('Images', {})
         self.status_map = hist.get('LastBuildStatus', {})
-        self.last_build_time = hist.get('LastBuildTime', {})
-        print(f'last build time: {self.last_build_time}')
 
     def load_builder_update_history(self):
         for file_path in builder_files:
             updated_timestamp = self.get_modified_time(file_path)
             if updated_timestamp > self.last_builder_update_timestamp:
                 self.last_builder_update_timestamp = updated_timestamp
-        print(f'last builder update: {time.strftime("%D %H:%M", time.localtime(self.last_builder_update_timestamp))}\n')
+        print('\033[32m' + f'Last builder update: ' + '\033[0m' + f'{get_hr_time(self.last_builder_update_timestamp)}')
 
     @staticmethod
     def get_modified_time(file_path) -> int:
@@ -313,7 +317,7 @@ class MultiBuilder(SingleBuilder):
             return 0
 
     def get_targets(self):
-        update_targets = set()
+        to_be_updated_targets = set()
         is_builder_updated = False
 
         for file_path in hub_files:
@@ -330,19 +334,18 @@ class MultiBuilder(SingleBuilder):
                 is_target_to_be_added = True
 
             if is_target_to_be_added:
-                update_targets.add(target)
-                print(f'{file_path} is added')
-                print(f'last_builder_update: {time.strftime("%D %H:%M", time.localtime(self.last_builder_update_timestamp))}')
-                print(f'last_image_build_time: {last_image_build_time or "---"}')
-                print(f'modified_time: {time.strftime("%D %H:%M", time.localtime(modified_time))}\n')
+                to_be_updated_targets.add(target)
+                print('\033[32m' + '\nFound target file ' + '\033[0m' + f'{file_path}')
+                print(f'Last build time: {last_image_build_time or "---"}')
+                print(f'Target modified time: {get_hr_time(modified_time)}')
 
-        return update_targets, is_builder_updated
+        return to_be_updated_targets, is_builder_updated
 
     def build_factory(self, targets):
-        for target in targets:
+        for i, target in enumerate(targets):
             self.target = target
             canonic_name = get_canonic_name(target)
-            print('\033[32m' + f'Building image {canonic_name}\n' + '\033[0m')
+            print('\033[32m' + f'\nImage ({i + 1}/{len(targets)}): ' + '\033[0m' + f'{canonic_name}')
             self.status_map[canonic_name] = 'pending'
 
             try:
@@ -397,9 +400,33 @@ class MultiBuilder(SingleBuilder):
     def set_reason(self, targets, reason):
         self.reason = f'{targets} updated due to {reason}.'
 
+    def update_json_track(self):
+        with open(build_hist_path, 'w') as fp:
+            json.dump({
+                'LastBuildTime': self.last_build_time,
+                'LastBuildReason': self.reason,
+                'LastBuildStatus': self.status_map,
+                'BuilderRevision': builder_revision,
+                'Images': self.image_map,
+            }, fp)
+            print('\033[32m' + 'History updated successfully on path ' + '\033[0m' + f'{build_hist_path}')
+
+    def update_hub_badge(self):
+        url = f'https://badgen.net/badge/Hub%20Images/{len(self.image_map)}/cyan'
+        response = requests.get(url)
+        if response.ok:
+            with open(hubbadge_path, 'wb') as opfile:
+                opfile.write(response.content)
+            print('\033[32m' + f'Badge updated successfully on path ' + '\033[0m' + f'{hubbadge_path}')
+        else:
+            print()
+
+
+def get_hr_time(stamp):
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(stamp))
 
 def get_canonic_name(target):
-    return os.path.relpath(target).replace('/', '.')[3:]
+    return os.path.relpath(target).replace('/', '.').strip('.')
 
 
 def get_parser():
@@ -415,8 +442,8 @@ def get_parser():
                         help='stop and raise error when the target is empty, otherwise just gracefully exit')
     parser.add_argument('--reason', type=str, nargs='*',
                         help='the reason of the build')
-    parser.add_argument('--check-only', action='store_true', default=False,
-                        help='check if the there is anything to update')
+    parser.add_argument('--check-targets', action='store_true', default=False,
+                        help='check if there is anything to update')
     parser.add_argument('--bleach-first', action='store_true', default=False,
                         help='clear docker before starting the build')
     return parser
@@ -434,19 +461,13 @@ def clean_docker():
         except subprocess.CalledProcessError:
             pass
 
+
+
 if __name__ == '__main__':
     args = get_parser().parse_args()
     if args.bleach_first:
         clean_docker()
-    if args.check_only:
-        pass
-        # t = get_update_targets()[0]
-        # if t:
-        #     exit(0)
-        # else:
-        #     # nothing to update exit with 1
-        #     exit(1)
-    if args.target:
+    if args.target and not args.check_targets:
         builder = SingleBuilder(args)
     else:
         builder = MultiBuilder(args)

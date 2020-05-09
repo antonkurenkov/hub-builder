@@ -221,7 +221,7 @@ def build_multi_targets(args):
             'Images': image_map,
         }, fp)
 
-    # update_hub_badge(len(image_map))
+    update_hub_badge(len(image_map))
     print('delivery success')
 
 
