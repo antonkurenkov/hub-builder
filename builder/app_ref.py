@@ -9,6 +9,7 @@ from datetime import datetime
 import time
 from pathlib import Path
 import requests
+from pymongo import MongoClient
 
 from jina.flow import Flow
 from ruamel.yaml import YAML
@@ -47,6 +48,40 @@ hub_files = list(set(valid_files) - set(ignore_files))
 builder_revision = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
 build_badge_regex = r'<!-- START_BUILD_BADGE -->(.*)<!-- END_BUILD_BADGE -->'
 build_badge_prefix = r'<!-- START_BUILD_BADGE --><!-- END_BUILD_BADGE -->'
+
+
+class Loader:
+
+    def __init__(self):
+        credentials = os.getenv('MONGOD_CREDENTIALS')
+        if credentials:
+            address = f"mongodb+srv://{credentials}@cluster0-irout.mongodb.net/test?retryWrites=true&w=majority"
+            client = MongoClient(address)
+            self.db = client['jina']
+        else:
+            print(f'Incorrect credentials "{credentials}" for DB connection.')
+            exit(1)
+
+    def create_or_update(self, **kwargs):
+        spec = {'_id': 1}
+        self.db.docker.replace_one(filter=spec, replacement=dict(**kwargs), upsert=True)
+
+    def get_from_database(self):
+        spec = {'_id': 1}
+        return self.db.docker.find_one(filter=spec)
+
+    @staticmethod
+    def get_from_local():
+        if os.path.isfile(build_hist_path):
+            with open(build_hist_path, 'r') as fp:
+                hist = json.load(fp)
+            return hist
+
+    # def select_head(self, n):
+    #     return dict(self.db.docker.find().limit(n))
+    #
+    # def contains(self, item):
+    #     return dict(self.db.docker.find(item).count())
 
 
 class Validator:
@@ -148,7 +183,7 @@ class SingleBuilder(Validator):
             self.image_canonical_name = get_canonic_name(self.target)
             return True
         elif self.error_on_empty:
-            raise NotADirectoryError(f'{self.target} is not a valid directory')
+            raise NotADirectoryError(f'{os.path.join(os.getcwd(), self.target)} is not a valid directory')
 
     def load_manifest(self):
         with open(self.manifest_path) as yml:
@@ -258,7 +293,6 @@ class MultiBuilder(SingleBuilder):
 
         self.image_map = {}
         self.status_map = {}
-        # self.last_build_time = {}
         self.last_builder_update_timestamp = 0
         self.img_name = ''
 
@@ -283,19 +317,19 @@ class MultiBuilder(SingleBuilder):
             print('\033[32m' + 'Delivery finished successfully!' + '\033[0m')
 
     def load_build_history(self):
-        if os.path.isfile(build_hist_path):
-            with open(build_hist_path, 'r') as fp:
-                hist = json.load(fp)
-                self.last_build_time = hist.get('LastBuildTime', {})
-                print('\033[32m' + f'\nLast build time:' + '\033[0m')
-                print(
-                    *[f'[{name}] -> {get_hr_time(timestamp)}' for name, timestamp in self.last_build_time.items()],
-                    sep='\n'
-                )
-
-        else:
-            print('\033[32m' + f'\nCan\'t load build history from ' + '\033[0m' + f'{build_hist_path}')
+        db_hist = loader.get_from_database()
+        local_hist = loader.get_from_local()
+        hist = db_hist or local_hist
+        if hist is None:
+            print('\033[32m' + f'\nCan\'t load build history from database or ' + '\033[0m' + f'{build_hist_path}')
             hist = {}
+        else:
+            self.last_build_time = hist.get('LastBuildTime', {})
+            print('\033[32m' + f'\nLast build time:' + '\033[0m')
+            print(
+                *[f'[{name}] -> {get_hr_time(timestamp)}' for name, timestamp in self.last_build_time.items()],
+                sep='\n'
+            )
 
         self.image_map = hist.get('Images', {})
         self.status_map = hist.get('LastBuildStatus', {})
@@ -400,16 +434,23 @@ class MultiBuilder(SingleBuilder):
     def set_reason(self, targets, reason):
         self.reason = f'{targets} updated due to {reason}.'
 
-    def update_json_track(self):
-        with open(build_hist_path, 'w') as fp:
-            json.dump({
-                'LastBuildTime': self.last_build_time,
-                'LastBuildReason': self.reason,
-                'LastBuildStatus': self.status_map,
-                'BuilderRevision': builder_revision,
-                'Images': self.image_map,
-            }, fp)
-            print('\033[32m' + 'History updated successfully on path ' + '\033[0m' + f'{build_hist_path}')
+    def update_json_track(self, db=True, local=True):
+
+        data = {
+            'LastBuildTime': self.last_build_time,
+            'LastBuildReason': self.reason,
+            'LastBuildStatus': self.status_map,
+            'BuilderRevision': builder_revision,
+            'Images': self.image_map,
+        }
+
+        if local:
+            with open(build_hist_path, 'w') as fp:
+                json.dump(data, fp)
+                print('\033[32m' + 'History updated successfully on path ' + '\033[0m' + f'{build_hist_path}')
+        if db:
+            loader.create_or_update(**data)
+            print('\033[32m' + 'History updated successfully on database' + '\033[0m')
 
     def update_hub_badge(self):
         url = f'https://badgen.net/badge/Hub%20Images/{len(self.image_map)}/cyan'
@@ -424,6 +465,7 @@ class MultiBuilder(SingleBuilder):
 
 def get_hr_time(stamp):
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(stamp))
+
 
 def get_canonic_name(target):
     return os.path.relpath(target).replace('/', '.').strip('.')
@@ -462,7 +504,6 @@ def clean_docker():
             pass
 
 
-
 if __name__ == '__main__':
     args = get_parser().parse_args()
     if args.bleach_first:
@@ -471,4 +512,5 @@ if __name__ == '__main__':
         builder = SingleBuilder(args)
     else:
         builder = MultiBuilder(args)
+    loader = Loader()
     builder.run()

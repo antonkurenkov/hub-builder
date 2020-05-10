@@ -1,3 +1,5 @@
 ruamel.yaml
 jina
 requests
+pymongo
+dnspython
