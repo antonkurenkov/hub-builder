@@ -1,14 +1,17 @@
 import argparse
 import json
 import os
-import pathlib
 import re
 import shutil
 import subprocess
 import unicodedata
 from datetime import datetime
+import time
 from pathlib import Path
+import requests
+from pymongo import MongoClient
 
+from jina.flow import Flow
 from ruamel.yaml import YAML
 
 yaml = YAML()
@@ -20,14 +23,15 @@ sver_regex = r'^(=|>=|<=|=>|=<|>|<|!=|~|~>|\^)?(?P<major>0|[1-9]\d*)\.(?P<minor>
              r'(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+' \
              r'(?:\.[0-9a-zA-Z-]+)*))?$'
 name_regex = r'^[a-zA-Z_$][a-zA-Z_\s\-$0-9]{2,20}$'
-cur_dir = pathlib.Path(__file__).parent.absolute()
-root_dir = pathlib.Path(__file__).parents[1].absolute()
+
+cur_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 jinasrc_dir = os.path.join(root_dir, 'src', 'jina')
 image_tag_regex = r'^hub.[a-zA-Z_$][a-zA-Z_\s\-\.$0-9]*$'
 label_prefix = 'ai.jina.hub.'
 docker_registry = 'jinaai/'
 
-# current date and time
 builder_files = list(Path(root_dir).glob('builder/app.py')) + \
                 list(Path(root_dir).glob('builder/*.yml'))
 
@@ -35,390 +39,436 @@ build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
 readme_path = os.path.join(root_dir, 'status', 'README.md')
 hubbadge_path = os.path.join(root_dir, 'status', 'hub-stat.svg')
 
-hub_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
+valid_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
             list(Path(root_dir).glob('hub/**/*Dockerfile')) + \
             list(Path(root_dir).glob('hub/**/*.py'))
+ignore_files = list(Path(root_dir).glob('hub/**/jina/**/*'))
+hub_files = list(set(valid_files) - set(ignore_files))
 
 builder_revision = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
 build_badge_regex = r'<!-- START_BUILD_BADGE -->(.*)<!-- END_BUILD_BADGE -->'
 build_badge_prefix = r'<!-- START_BUILD_BADGE --><!-- END_BUILD_BADGE -->'
 
 
-def safe_url_name(s):
-    return s.replace('-', '--').replace('_', '__').replace(' ', '_')
+class Loader:
 
-
-def get_badge_md(img_name, status):
-    if status == 'success':
-        success_tag = 'success-success'
-    elif status == 'fail':
-        success_tag = 'fail-critical'
-    else:
-        success_tag = 'pending-yellow'
-    return f'[![{img_name}](https://img.shields.io/badge/{safe_url_name(img_name)}-' \
-           f'{success_tag}?style=flat-square)]' \
-           f'(https://hub.docker.com/repository/docker/jinaai/{img_name})'
-
-
-def get_now_timestamp():
-    now = datetime.now()
-    return int(datetime.timestamp(now))
-
-
-def get_modified_time(p) -> int:
-    r = subprocess.check_output(
-        ['git', 'log', '-1', '--pretty=%at', str(p)]).strip().decode()
-    if r:
-        return int(r)
-    else:
-        print(f'can not fetch the modified time of {p}, is it under git?')
-        return 0
-
-
-def set_reason(args, reason):
-    if not args.reason:
-        args.reason = [reason]
-    else:
-        args.reason.append(reason)
-
-
-def clean_docker():
-    for k in ['df -h',
-              'docker stop $(docker ps -aq)',
-              'docker rm $(docker ps -aq)',
-              'docker rmi $(docker image ls -aq)',
-              'df -h']:
-        try:
-            subprocess.check_call(k, shell=True)
-        except:
-            pass
-
-
-def get_update_targets():
-    # try:
-    #     with open(build_hist_path, 'r') as fp:
-    #         hist = json.load(fp)
-    #         last_build_time = hist.get('LastBuildTime', {})
-    #         # backward support
-    #         if not isinstance(last_build_time, dict):
-    #             last_build_time = {}
-    # except:
-    #     raise ValueError('can not fetch "LastBuildTime" from build-history.json')
-    last_build_time = {}
-
-    print(f'last build time: {last_build_time}')
-
-    # check if builder is updated
-    is_builder_updated = False
-
-    last_builder_update = 0
-    for p in builder_files:
-        _t = get_modified_time(p)
-        if _t > last_builder_update:
-            last_builder_update = _t
-
-    update_targets = set()
-    for p in hub_files:
-        modified_time = get_modified_time(p)
-        target = str(pathlib.Path(str(p)).parent.absolute())
-        last_image_build_time = last_build_time.get(get_canonic_name(target), 0)
-        _add = False
-        if last_builder_update > last_image_build_time:
-            is_builder_updated = True
-            _add = True
-        elif modified_time > last_image_build_time:
-            _add = True
-
-        if _add:
-            update_targets.add(target)
-            print(f'\n{target} is added')
-            print(f'last_builder_update: {last_builder_update}')
-            print(f'last_image_build_time: {last_image_build_time}')
-            print(f'modified_time: {modified_time}')
-
-    return update_targets, is_builder_updated
-
-
-def get_canonic_name(target):
-    return os.path.relpath(target).replace('/', '.')[3:]
-
-
-def build_multi_targets(args):
-    # try:
-    #     with open(build_hist_path, 'r') as fp:
-    #         hist = json.load(fp)
-    #         image_map = hist.get('Images', {})
-    #         status_map = hist.get('LastBuildStatus', {})
-    #         last_build_time = hist.get('LastBuildTime', {})
-    #         # backward support
-    #         if not isinstance(last_build_time, dict):
-    #             last_build_time = {}
-    # except:
-    #     raise ValueError('can not fetch "LastBuildTime" from build-history.json')
-    image_map = {}
-    status_map = {}
-    last_build_time = {}
-
-    update_targets, is_builder_updated = get_update_targets()
-
-    if update_targets:
-        if not is_builder_updated:
-            set_reason(args, f'{update_targets} are updated and need to be rebuilt')
+    def __init__(self):
+        credentials = os.getenv('MONGOD_CREDENTIALS')
+        if credentials:
+            address = f"mongodb+srv://{credentials}@cluster0-irout.mongodb.net/test?retryWrites=true&w=majority"
+            client = MongoClient(address)
+            self.db = client['jina']
         else:
-            set_reason(args, 'builder is updated need to rebuild all images')
-        for p in update_targets:
-            canonic_name = get_canonic_name(p)
-            status_map[canonic_name] = 'pending'
+            print(f'Incorrect credentials "{credentials}" for DB connection.')
+            exit(1)
 
-        # build one target at time
-        p = update_targets.pop()
-        canonic_name = get_canonic_name(p)
-        try:
-            args.target = p
-            image_name = build_target(args)
-            subprocess.check_call(['docker', 'pull', image_name])
-            tmp = subprocess.check_output(['docker', 'inspect', image_name]).strip().decode()
-            tmp = json.loads(tmp)[0]
-            if canonic_name not in image_map:
-                image_map[canonic_name] = []
-            image_map[canonic_name].append({
-                'Status': True,
-                'LastBuildTime': get_now_timestamp(),
-                'Inspect': tmp,
-            })
-            status_map[canonic_name] = 'success'
-        except Exception as ex:
-            status_map[canonic_name] = 'fail'
-            print(ex)
-        last_build_time[canonic_name] = get_now_timestamp()
+    def create_or_update(self, **kwargs):
+        spec = {'_id': 1}
+        self.db.docker.replace_one(filter=spec, replacement=dict(**kwargs), upsert=True)
 
-        # update readme
+    def get_from_database(self):
+        spec = {'_id': 1}
+        return self.db.docker.find_one(filter=spec)
+
+    @staticmethod
+    def get_from_local():
+        if os.path.isfile(build_hist_path):
+            with open(build_hist_path, 'r') as fp:
+                hist = json.load(fp)
+            return hist
+
+    # def select_head(self, n):
+    #     return dict(self.db.docker.find().limit(n))
+    #
+    # def contains(self, item):
+    #     return dict(self.db.docker.find(item).count())
+
+
+class Validator:
+
+    def __init__(self, manifest=None, image_canonical_name=''):
+        self.manifest = manifest
+        self.image_canonical_name = image_canonical_name
+
+    def validate_schema(self):
+        keys = set(self.manifest.keys())
+        if len(required - keys) > 0:
+            raise ValueError(f"{required - keys} required!")
+        elif len(keys - allowed) > 0:
+            raise ValueError(f"{keys - allowed} are not allowed!")
+
+    def check_chain(self):
+        self.check_image_canonical_name()
+        self.check_name()
+        self.check_version()
+        self.check_license()
+        self.check_platform()
+
+    def check_image_canonical_name(self):
+        if not re.match(image_tag_regex, self.image_canonical_name):
+            raise ValueError(
+                f'{self.image_canonical_name} is not a valid image name for a Jina Hub image, it should match with {image_tag_regex}'
+            )
+
+    def check_name(self):
+        name = self.manifest.get('name')
+        if not re.match(name_regex, name):
+            raise ValueError(f'{name} is not a valid name, it should match with {name_regex}')
+
+    def check_version(self):
+        version = self.manifest.get('version')
+        if not re.match(sver_regex, version):
+            raise ValueError(f'{version} is not a valid semantic version number, see http://semver.org/')
+
+    def check_license(self):
+        license_ = self.manifest.get('license')
+        with open(os.path.join(cur_dir, 'osi-approved.yml')) as fp:
+            approved = yaml.load(fp)
+        if license_ not in approved:
+            raise ValueError(f"license {license_} is not an OSI-approved license {approved}")
+        return approved[license_]
+
+    def check_platform(self):
+        with open(os.path.join(cur_dir, 'platforms.yml')) as yml:
+            supported_platforms = yaml.load(yml)
+
+        for user_added_platform in self.manifest.get('platform'):
+            if user_added_platform not in supported_platforms:
+                raise ValueError(
+                    f'platform {user_added_platform} is not supported, should be one of {supported_platforms}'
+                )
+
+    @staticmethod
+    def check_image_in_hub(img_name):
+        print('\033[32m' + f'Pulling image ' + '\033[0m' + f'{img_name}\n' )
+        subprocess.check_call(['docker', 'pull', img_name])
+
+
+class SingleBuilder(Validator):
+
+    def __init__(self, args):
+        super().__init__()
+        self.target: str = args.target
+        self.reason: str = args.reason
+        self.push: bool = args.push
+        self.test: bool = args.test
+        self.error_on_empty: bool = args.error_on_empty
+        self.check_targets: bool = args.check_targets
+        self.bleach_first: bool = args.bleach_first
+
+        self.dockerfile_path = None
+        self.manifest_path = None
+        self.image_canonical_name = None
+        self.manifest = None
+        self.img_name = ''
+        self.last_build_time = {}
+
+    def run(self):
+        if self.construct_paths():
+            self.load_manifest()
+            self.validate_schema()
+            self.load_fields_from_manifest()
+            self.check_chain()
+
+            self.img_name = self.build_image()
+            self.pushing()
+
+            self.check_image_in_hub(self.img_name)
+            self.testing(self.img_name)
+
+    def construct_paths(self):
+        if os.path.isdir(self.target):
+            self.dockerfile_path = os.path.join(self.target, 'Dockerfile')
+            self.manifest_path = os.path.join(self.target, 'manifest.yml')
+            self.image_canonical_name = get_canonic_name(self.target)
+            return True
+        elif self.error_on_empty:
+            raise NotADirectoryError(f'{os.path.join(os.getcwd(), self.target)} is not a valid directory')
+
+    def load_manifest(self):
+        with open(self.manifest_path) as yml:
+            self.manifest = yaml.load(yml)
+
+    def load_fields_from_manifest(self):
+        print('\033[33m' + f'\nManifest file ' + '\033[0m' + f'{self.manifest_path}:')
+        for key, value in self.manifest.items():
+            updated_value = self.remove_control_characters(value)
+            if updated_value != value:
+                self.manifest[key] = updated_value
+                print('\033[35m' + f'{key}: {value} -> {updated_value}' + '\033[0m' + ' // removed invalid chars')
+            else:
+                print('\033[35m' + f'{key}: {value}' + '\033[0m')
+        self.add_platform_revision_source()
+
+    @staticmethod
+    def remove_control_characters(source):
+        return ''.join(ch for ch in source if not unicodedata.category(ch).startswith('C'))
+
+    def add_platform_revision_source(self):
+        self.manifest['platform'] = self.manifest.get('platform') or []
+        print('\033[35m' + f"platform: {self.manifest['platform'] or '---'}" + '\033[0m')
+
+        self.manifest['revision'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
+        print('\033[35m' + f"revision: {self.manifest['revision']}" + '\033[0m')
+
+        self.manifest['source'] = 'https://github.com/jina-ai/jina-hub/commit/' + self.manifest['revision']
+        print('\033[35m' + f"source: {self.manifest['source']}\n" + '\033[0m')
+
+    def build_image(self):
+        revised_dockerfile = []
+        with open(self.dockerfile_path) as dockerfile:
+            for line in dockerfile:
+                revised_dockerfile.append(line)
+                if line.startswith('FROM'):
+                    revised_dockerfile.append('LABEL ')
+                    revised_dockerfile.append(
+                        ' \\      \n'.join(f'{label_prefix}{k}="{v}"' for k, v in self.manifest.items())
+                    )
+        print('\033[33m' + f'Dockerfile on ' + '\033[0m' + f'{self.dockerfile_path}:')
+        for line in revised_dockerfile:
+            if line != '\n':
+                print('\033[35m' + line.strip('\n') + '\033[35m')
+
+        with open(self.dockerfile_path + '.tmp', 'w') as fp:
+            fp.writelines(revised_dockerfile)
+
+        if not os.path.isdir(os.path.join(self.target, 'jina')):
+            shutil.copytree(src=jinasrc_dir, dst=os.path.join(self.target, 'jina'))
+
+        dockerbuild_cmd = ['docker', 'buildx', 'build']
+
+        image_name = f'{docker_registry}{self.image_canonical_name}:{self.manifest["version"]}'
+        tag = f'{docker_registry}{self.image_canonical_name}:latest'
+        dockerbuild_args = [
+            '-t', image_name,
+            '-t', tag,
+            '--file', self.dockerfile_path + '.tmp'
+        ]
+        dockerbuild_platform = ['--platform', ','.join(v for v in self.manifest['platform'])] \
+            if self.manifest['platform'] else []
+        dockerbuild_action = '--push' if self.push else '--load'
+        docker_cmd = dockerbuild_cmd + dockerbuild_platform + dockerbuild_args + [dockerbuild_action, self.target]
+
+        print('\033[32m' + '\nStarting docker build for image ' + '\033[0m' + f'{self.image_canonical_name}')
+        subprocess.check_call(docker_cmd)
+
+        print('\033[32m' + 'Successfully built image ' + '\033[0m' + f'{self.image_canonical_name}')
+        self.last_build_time[self.image_canonical_name] = int(time.time())
+        return image_name
+
+    def testing(self, img_name):
+        if self.test:
+            print('\033[32m' + 'Testing image with docker run...' + '\033[0m')
+            subprocess.check_call(['docker', 'run', '--rm', img_name, '--max-idle-time', '5', '--shutdown-idle'])
+
+            print('\033[32m' + 'Testing image with jina cli...' + '\033[0m')
+            subprocess.check_call(['jina', 'pod', '--image', img_name, '--max-idle-time', '5', '--shutdown-idle'])
+
+            print('\033[32m' + 'Testing image with jina flow API...' + '\033[0m')
+            with Flow().add(image=img_name, replicas=3).build():
+                pass
+            print('\033[32m' + 'All tests passed successfully!' + '\033[0m')
+
+    def pushing(self):
+        if self.push:
+            target_readme_path = os.path.join(self.target, 'README.md')
+            if not os.path.exists(target_readme_path):
+                with open(target_readme_path, 'w') as fp:
+                    fp.write('#{name}\n\n#{description}\n'.format_map(self.manifest))
+
+            docker_readme_cmd = ['docker', 'run', '-v', f'{self.target}:/workspace',
+                                 '-e', f'DOCKERHUB_USERNAME={os.environ["DOCKERHUB_DEVBOT_USER"]}',
+                                 '-e', f'DOCKERHUB_PASSWORD={os.environ["DOCKERHUB_DEVBOT_PWD"]}',
+                                 '-e', f'DOCKERHUB_REPOSITORY={docker_registry}{self.image_canonical_name}',
+                                 '-e', 'README_FILEPATH=/workspace/README.md',
+                                 'peterevans/dockerhub-description:2.1']
+            subprocess.check_call(docker_readme_cmd)
+            print('\033[32m' + 'Readme upload finished successfully!' + '\033[0m')
+
+
+class MultiBuilder(SingleBuilder):
+
+    def __init__(self, args):
+        super().__init__(args)
+
+        self.image_map = {}
+        self.status_map = {}
+        self.last_builder_update_timestamp = 0
+        self.img_name = ''
+
+    def run(self):
+        self.load_build_history()
+        self.load_builder_update_history()
+
+        update_targets, is_builder_updated = self.get_targets()
+        if not self.check_targets:
+            if update_targets:
+                if is_builder_updated:
+                    self.set_reason(targets=update_targets, reason='builder was updated')
+                else:
+                    self.set_reason(targets=update_targets, reason='manual update')
+                self.build_factory(targets=update_targets)
+                self.update_readme()
+            else:
+                self.set_reason(targets=None, reason='empty target set')
+                print('\033[32m' + 'Noting to build' + '\033[0m')
+            self.update_json_track()
+            self.update_hub_badge()
+            print('\033[32m' + 'Delivery finished successfully!' + '\033[0m')
+
+    def load_build_history(self):
+        db_hist = loader.get_from_database()
+        local_hist = loader.get_from_local()
+        hist = db_hist or local_hist
+        if hist is None:
+            print('\033[32m' + f'\nCan\'t load build history from database or ' + '\033[0m' + f'{build_hist_path}')
+            hist = {}
+        else:
+            self.last_build_time = hist.get('LastBuildTime', {})
+            print('\033[32m' + f'\nLast build time:' + '\033[0m')
+            print(
+                *[f'[{name}] -> {get_hr_time(timestamp)}' for name, timestamp in self.last_build_time.items()],
+                sep='\n'
+            )
+
+        self.image_map = hist.get('Images', {})
+        self.status_map = hist.get('LastBuildStatus', {})
+
+    def load_builder_update_history(self):
+        for file_path in builder_files:
+            updated_timestamp = self.get_modified_time(file_path)
+            if updated_timestamp > self.last_builder_update_timestamp:
+                self.last_builder_update_timestamp = updated_timestamp
+        print('\033[32m' + f'Last builder update: ' + '\033[0m' + f'{get_hr_time(self.last_builder_update_timestamp)}')
+
+    @staticmethod
+    def get_modified_time(file_path) -> int:
+        r = subprocess.check_output(['git', 'log', '-1', '--pretty=%at', str(file_path)]).strip().decode()
+        if r:
+            return int(r)
+        else:
+            print('\033[31m' + f'Can\'t fetch the modified time of {file_path}, is it under git?' + '\033[0m')
+            return 0
+
+    def get_targets(self):
+        to_be_updated_targets = set()
+        is_builder_updated = False
+
+        for file_path in hub_files:
+            modified_time = self.get_modified_time(file_path)
+            target = os.path.dirname(os.path.abspath(file_path))
+            canonic_name = get_canonic_name(target)
+            last_image_build_time = self.last_build_time.get(canonic_name, 0)
+
+            is_target_to_be_added = False
+            if self.last_builder_update_timestamp > last_image_build_time:
+                is_builder_updated = True
+                is_target_to_be_added = True
+            elif modified_time > last_image_build_time:
+                is_target_to_be_added = True
+
+            if is_target_to_be_added:
+                to_be_updated_targets.add(target)
+                print('\033[32m' + '\nFound target file ' + '\033[0m' + f'{file_path}')
+                print(f'Last build time: {last_image_build_time or "---"}')
+                print(f'Target modified time: {get_hr_time(modified_time)}')
+
+        return to_be_updated_targets, is_builder_updated
+
+    def build_factory(self, targets):
+        for i, target in enumerate(targets):
+            self.target = target
+            canonic_name = get_canonic_name(target)
+            print('\033[32m' + f'\nImage ({i + 1}/{len(targets)}): ' + '\033[0m' + f'{canonic_name}')
+            self.status_map[canonic_name] = 'pending'
+
+            try:
+                super().run()
+                docker_inspect_output = subprocess.check_output(['docker', 'inspect', self.img_name]).strip().decode()
+                tmp = json.loads(docker_inspect_output)[0]
+
+                if canonic_name not in self.image_map:
+                    self.image_map[canonic_name] = []
+                self.image_map[canonic_name].append({
+                    'Status': True,
+                    'LastBuildTime': int(time.time()),
+                    'Inspect': tmp,
+                })
+                self.status_map[canonic_name] = 'success'
+            except Exception as ex:
+                self.status_map[canonic_name] = 'fail'
+                print(ex)
+
+    def update_readme(self):
         with open(readme_path, 'r') as fp:
             tmp = fp.read()
-            badge_str = '\n'.join([get_badge_md(k, v) for k, v in status_map.items()])
+            badge_str = '\n'.join([self.get_badge_md(k, v) for k, v in self.status_map.items()])
             h1 = f'## Last Build at: {datetime.now():%Y-%m-%d %H:%M:%S %Z}'
             h2 = '<summary>Reason</summary>'
             h3 = '**Images**'
-            reason = '\n\n'.join([v for v in args.reason])
-            tmp = re.sub(pattern=build_badge_regex,
-                         repl='\n\n'.join([build_badge_prefix, h1, h3, badge_str,
-                                           '<details>', h2, reason, '</details>']),
-                         string=tmp, flags=re.DOTALL)
-
+            reason = '\n\n'.join([v for v in self.reason]) ## WHAT THE HELL IS THIS
+            tmp = re.sub(
+                pattern=build_badge_regex,
+                repl='\n\n'.join([build_badge_prefix, h1, h3, badge_str, '<details>', h2, reason, '</details>']),
+                string=tmp,
+                flags=re.DOTALL
+            )
         with open(readme_path, 'w') as fp:
             fp.write(tmp)
-    else:
-        set_reason(args, f'but i have nothing to build')
-        print('noting to build')
 
-    # update json track
-    with open(build_hist_path, 'w+') as fp:
-        json.dump({
-            'LastBuildTime': last_build_time,
-            'LastBuildReason': args.reason,
-            'LastBuildStatus': status_map,
-            'BuilderRevision': builder_revision,
-            'Images': image_map,
-        }, fp)
-
-    update_hub_badge(len(image_map))
-    print('delivery success')
-
-
-def copy_src_to_context(target_path):
-    shutil.copytree(jinasrc_dir, os.path.join(target_path, 'jina'))
-
-
-def update_hub_badge(img_count):
-    try:
-        from urllib.request import Request, urlopen
-        request_headers = {
-            "Accept-Language": "en-US,en;q=0.5",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Referer": "http://thewebsite.com",
-            "Connection": "keep-alive"
-        }
-        url = f'https://badgen.net/badge/Hub%20Images/{img_count}/cyan'
-        request = Request(url, headers=request_headers)
-
-        with urlopen(request) as d, open(hubbadge_path, 'wb') as opfile:
-            data = d.read()
-            opfile.write(data)
-    except Exception as ex:
-        print(ex)
-        print('something wrong, badge is not updated')
-
-
-def remove_control_characters(s):
-    return ''.join(ch for ch in s if unicodedata.category(ch)[0] != 'C')
-
-
-def build_target(args):
-    clean_docker()
-
-    if os.path.exists(args.target) and os.path.isdir(args.target):
-        dockerfile_path = os.path.join(args.target, 'Dockerfile')
-        manifest_path = os.path.join(args.target, 'manifest.yml')
-        for j in (dockerfile_path, manifest_path):
-            if not os.path.exists(j):
-                raise FileNotFoundError(f'{j} does not exist and it is required for a valid hub image!')
-    else:
-        if args.error_on_empty:
-            raise NotADirectoryError(f'{args.target} is not a valid directory')
+    def get_badge_md(self, img_name, status):
+        if status == 'success':
+            success_tag = 'success-success'
+        elif status == 'fail':
+            success_tag = 'fail-critical'
         else:
-            return
+            success_tag = 'pending-yellow'
+        return f'[![{img_name}](https://img.shields.io/badge/{self.safe_url_name(img_name)}-' \
+               f'{success_tag}?style=flat-square)]' \
+               f'(https://hub.docker.com/repository/docker/jinaai/{img_name})'
 
-    image_canonical_name = get_canonic_name(args.target)
-    check_image_name(image_canonical_name)
+    @staticmethod
+    def safe_url_name(s):
+        return s.replace('-', '--').replace('_', '__').replace(' ', '_')
 
-    with open(os.path.join(cur_dir, 'manifest.yml')) as fp:
-        _manifest = yaml.load(fp)  # type: dict
-    with open(manifest_path) as fp:
-        _manifest.update(yaml.load(fp))
+    def set_reason(self, targets, reason):
+        self.reason = f'{targets} updated due to {reason}.'
 
-    # check if all keys are allowed keys
-    for k in _manifest.keys():
-        if k not in allowed:
-            raise ValueError(f'{k} is not allowed as a key in manifest.yml, only one of the {allowed}')
+    def update_json_track(self, db=True, local=True):
 
-    # check the required field in manifest
-    for r in required:
-        if r not in _manifest:
-            raise ValueError(f'{r} is missing in the manifest.yaml, it is required')
+        data = {
+            'LastBuildTime': self.last_build_time,
+            'LastBuildReason': self.reason,
+            'LastBuildStatus': self.status_map,
+            'BuilderRevision': builder_revision,
+            'Images': self.image_map,
+        }
 
-    # check if all fields are there
-    for r in allowed:
-        if r not in _manifest:
-            print(f'{r} is missing in your manifest.yml, you may want to check it')
+        if local:
+            with open(build_hist_path, 'w') as fp:
+                json.dump(data, fp)
+                print('\033[32m' + 'History updated successfully on path ' + '\033[0m' + f'{build_hist_path}')
+        if db:
+            loader.create_or_update(**data)
+            print('\033[32m' + 'History updated successfully on database' + '\033[0m')
 
-    # replace all chars in value to safe chars
-    for k, v in _manifest.items():
-        if v and isinstance(v, str):
-            _manifest[k] = remove_control_characters(v)
-
-    # check name
-    check_name(_manifest['name'])
-    # check version number
-    check_version(_manifest['version'])
-    # check version number
-    check_license(_manifest['license'])
-    # add revision
-    add_revision_source(_manifest)
-    # check platform
-    if not isinstance(_manifest['platform'], list):
-        _manifest['platform'] = list(_manifest['platform'])
-    check_platform(_manifest['platform'])
-
-    # show manifest key-values
-    for k, v in _manifest.items():
-        print(f'{k}: {v}')
-
-    # modify dockerfile
-    revised_dockerfile = []
-    with open(dockerfile_path) as fp:
-        for l in fp:
-            revised_dockerfile.append(l)
-            if l.startswith('FROM'):
-                revised_dockerfile.append('LABEL ')
-                revised_dockerfile.append(' \\      \n'.join(f'{label_prefix}{k}="{v}"' for k, v in _manifest.items()))
-    for k in revised_dockerfile:
-        print(k)
-
-    with open(dockerfile_path + '.tmp', 'w') as fp:
-        fp.writelines(revised_dockerfile)
-
-    copy_src_to_context(args.target)
-
-    dockerbuild_cmd = ['docker', 'buildx', 'build']
-    dockerbuild_args = ['--platform', ','.join(v for v in _manifest['platform']),
-                        '-t', f'{docker_registry}{image_canonical_name}:{_manifest["version"]}', '-t',
-                        f'{docker_registry}{image_canonical_name}:latest',
-                        '--file', dockerfile_path + '.tmp']
-    dockerbuild_action = '--push' if args.push else '--load'
-    docker_cmd = dockerbuild_cmd + dockerbuild_args + [dockerbuild_action, args.target]
-    subprocess.check_call(docker_cmd)
-    print('build success!')
-
-    if args.push:
-        target_readme_path = os.path.join(args.target, 'README.md')
-        if not os.path.exists(target_readme_path):
-            with open(target_readme_path, 'w') as fp:
-                fp.write('#{name}\n\n#{description}\n'.format_map(_manifest))
-
-        docker_readme_cmd = ['docker', 'run', '-v', f'{args.target}:/workspace',
-                             '-e', f'DOCKERHUB_USERNAME={os.environ["DOCKERHUB_DEVBOT_USER"]}',
-                             '-e', f'DOCKERHUB_PASSWORD={os.environ["DOCKERHUB_DEVBOT_PWD"]}',
-                             '-e', f'DOCKERHUB_REPOSITORY={docker_registry}{image_canonical_name}',
-                             '-e', 'README_FILEPATH=/workspace/README.md',
-                             'peterevans/dockerhub-description:2.1']
-        subprocess.check_call(docker_readme_cmd)
-        print('upload readme success!')
-
-    img_name = f'{docker_registry}{image_canonical_name}:{_manifest["version"]}'
-
-    if args.test:
-        test_docker_cli(img_name)
-        test_jina_cli(img_name)
-        test_flow_api(img_name)
-
-        print('all tests success!')
-
-    return img_name
+    def update_hub_badge(self):
+        url = f'https://badgen.net/badge/Hub%20Images/{len(self.image_map)}/cyan'
+        response = requests.get(url)
+        if response.ok:
+            with open(hubbadge_path, 'wb') as opfile:
+                opfile.write(response.content)
+            print('\033[32m' + f'Badge updated successfully on path ' + '\033[0m' + f'{hubbadge_path}')
+        else:
+            print()
 
 
-def test_docker_cli(img_name):
-    print('testing image with docker run')
-    subprocess.check_call(['docker', 'run', '--rm', img_name, '--max-idle-time', '5', '--shutdown-idle'])
+def get_hr_time(stamp):
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(stamp))
 
 
-def test_jina_cli(img_name):
-    print('testing image with jina cli')
-    subprocess.check_call(['jina', 'pod', '--image', img_name, '--max-idle-time', '5', '--shutdown-idle'])
-
-
-def test_flow_api(img_name):
-    print('testing image with jina flow API')
-    from jina.flow import Flow
-    with Flow().add(image=img_name, replicas=3).build():
-        pass
-
-
-def check_image_name(s):
-    if not re.match(image_tag_regex, s):
-        raise ValueError(f'{s} is not a valid image name for a Jina Hub image, it should match with {image_tag_regex}')
-
-
-def check_platform(s):
-    with open(os.path.join(cur_dir, 'platforms.yml')) as fp:
-        platforms = yaml.load(fp)
-
-    for ss in s:
-        if ss not in platforms:
-            raise ValueError(f'platform {ss} is not supported, should be one of {platforms}')
-
-
-def check_license(s):
-    with open(os.path.join(cur_dir, 'osi-approved.yml')) as fp:
-        approved = yaml.load(fp)
-    if s not in approved:
-        raise ValueError(f'license {s} is not an OSI-approved license {approved}')
-    return approved[s]
-
-
-def add_revision_source(d):
-    d['revision'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
-    d['source'] = 'https://github.com/jina-ai/jina-hub/commit/' + d['revision']
-
-
-def check_name(s):
-    if not re.match(name_regex, s):
-        raise ValueError(f'{s} is not a valid name, it should match with {name_regex}')
-
-
-def check_version(s):
-    if not re.match(sver_regex, s):
-        raise ValueError(f'{s} is not a valid semantic version number, see http://semver.org/')
+def get_canonic_name(target):
+    return os.path.relpath(target).replace('/', '.').strip('.')
 
 
 def get_parser():
@@ -434,21 +484,33 @@ def get_parser():
                         help='stop and raise error when the target is empty, otherwise just gracefully exit')
     parser.add_argument('--reason', type=str, nargs='*',
                         help='the reason of the build')
-    parser.add_argument('--check-only', action='store_true', default=False,
-                        help='check if the there is anything to update')
+    parser.add_argument('--check-targets', action='store_true', default=False,
+                        help='check if there is anything to update')
+    parser.add_argument('--bleach-first', action='store_true', default=False,
+                        help='clear docker before starting the build')
     return parser
 
 
+def clean_docker():
+    print('\033[32m' + 'Removing all existing docker instances' + '\033[0m')
+    for k in ['df -h',
+              'docker stop $(docker ps -aq)',
+              'docker rm $(docker ps -aq)',
+              'docker rmi -f $(docker image ls -aq)',
+              'df -h']:
+        try:
+            subprocess.check_call(k, shell=True)
+        except subprocess.CalledProcessError:
+            pass
+
+
 if __name__ == '__main__':
-    a = get_parser().parse_args()
-    if a.check_only:
-        t = get_update_targets()[0]
-        if t:
-            exit(0)
-        else:
-            # nothing to update exit with 1
-            exit(1)
-    if a.target:
-        build_target(a)
+    args = get_parser().parse_args()
+    if args.bleach_first:
+        clean_docker()
+    if args.target and not args.check_targets:
+        builder = SingleBuilder(args)
     else:
-        build_multi_targets(a)
+        builder = MultiBuilder(args)
+    loader = Loader()
+    builder.run()
