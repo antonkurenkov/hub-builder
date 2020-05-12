@@ -28,7 +28,7 @@ jobs:
         id: updatestatus
         run: |
           pip install -r builder/requirements.txt
-          python app.py --check-only && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
+          python app.py --check-targets && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
 
   build-update:
     needs: checkupdate
