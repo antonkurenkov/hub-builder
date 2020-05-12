@@ -23,7 +23,7 @@ jobs:
           token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:
-          repository: jina-ai/jina-hub/hun
+          repository: jina-ai/jina-hub
           path: hub
           token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/setup-python@v1
