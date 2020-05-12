@@ -17,7 +17,7 @@ yaml = YAML()
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 jinasrc_dir = os.path.join(root_dir, 'src', 'jina')
-build_hist_path = os.path.join(root_dir ,'status', 'build-history.json')
+build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
 readme_path = os.path.join(root_dir, 'status', 'README.md')
 hubbadge_path = os.path.join(root_dir, 'status', 'hub-stat.svg')
 
@@ -158,7 +158,6 @@ class MultiBuilder(SingleBuilder, Loader):
                 print(print_green('Noting to build'))
         else:
             exit(1)
-
 
     def build_factory(self, targets):
         success = 0
