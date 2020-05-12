@@ -156,7 +156,9 @@ class MultiBuilder(SingleBuilder, Loader):
                     print(print_red('Delivered ') + f'{built_num}/{len(update_targets)}')
             else:
                 print(print_green('Noting to build'))
-                exit(1)
+        else:
+            exit(1)
+
 
     def build_factory(self, targets):
         success = 0
