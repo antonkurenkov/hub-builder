@@ -155,7 +155,6 @@ class MultiBuilder(SingleBuilder, Loader):
                 else:
                     print(print_red('Delivered ') + f'{built_num}/{len(update_targets)}')
             else:
-                self.set_reason(targets=None, reason='empty target set')
                 print(print_green('Noting to build'))
 
     def build_factory(self, targets):
