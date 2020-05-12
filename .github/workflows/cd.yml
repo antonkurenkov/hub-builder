@@ -26,11 +26,11 @@ jobs:
           python-version: 3.7
       - name: check if rebuild necessary
         id: updatestatus
-        with:
-          credentials: ${{ secrets.MONGODB_CREDENTIALS }}
         run: |
           pip install -r builder/requirements.txt
           python app.py --check-targets && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
+        env:
+          MONGOD_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
 
   build-update:
     needs: checkupdate
