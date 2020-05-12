@@ -71,6 +71,7 @@ jobs:
           git show '--stat-count=10' HEAD
           git config --list
         env:
+          MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
           DOCKERHUB_DEVBOT_PWD: ${{ secrets.DOCKERHUB_DEVBOT_PWD }}
         timeout-minutes: 30
