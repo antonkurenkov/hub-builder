@@ -28,7 +28,7 @@ jobs:
         id: updatestatus
         run: |
           pip install -r builder/requirements.txt
-          python builder/app.py --check-only && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
+          python app.py --check-only && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
 
   build-update:
     needs: checkupdate
@@ -60,7 +60,7 @@ jobs:
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
-          python builder/app.py --reason "master got pushed" --push
+          python app.py --reason "master got pushed" --push
           cd status
           git config user.email "dev-bot@jina.ai"
           git config user.name "Jina Dev Bot"
