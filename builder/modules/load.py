@@ -25,7 +25,7 @@ hub_files = list(set(valid_files) - set(ignore_files))
 class Mongo:
 
     def __init__(self):
-        credentials = os.getenv('MONGOD_CREDENTIALS')
+        credentials = os.getenv('MONGODB_CREDENTIALS')
         if credentials:
             address = f"mongodb+srv://{credentials}@cluster0-irout.mongodb.net/test?retryWrites=true&w=majority"
             client = MongoClient(address)
