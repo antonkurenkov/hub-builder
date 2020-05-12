@@ -140,8 +140,8 @@ class MultiBuilder(SingleBuilder, Loader):
         self.load_builder_update_history()
 
         update_targets, is_builder_updated = self.get_targets()
-        if not self.check_targets:
-            if update_targets:
+        if update_targets:
+            if not self.check_targets:
                 if is_builder_updated:
                     self.set_reason(targets=update_targets, reason='builder was updated')
                 else:
@@ -154,9 +154,8 @@ class MultiBuilder(SingleBuilder, Loader):
                     print(print_green('Delivered ') + f'{built_num}/{len(update_targets)}')
                 else:
                     print(print_red('Delivered ') + f'{built_num}/{len(update_targets)}')
-            else:
-                print(print_green('Noting to build'))
         else:
+            print(print_green('Noting to build'))
             exit(1)
 
     def build_factory(self, targets):
