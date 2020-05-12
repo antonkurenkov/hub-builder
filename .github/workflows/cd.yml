@@ -51,6 +51,11 @@ jobs:
 #          token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:
+          repository: jina-ai/jina-hub
+          path: hub
+          token: ${{ secrets.JINA_DEV_BOT }}
+      - uses: actions/checkout@v2
+        with:
           repository: jina-ai/jina
           path: src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
@@ -68,14 +73,13 @@ jobs:
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
           python app.py --reason "master got pushed" --push
-          echo 'HERE WE PUSH'
-#          cd status
-#          git config user.email "dev-bot@jina.ai"
-#          git config user.name "Jina Dev Bot"
-#          git add README.md build-history.json hub-stat.svg
-#          git commit -qm "chore: update readme and build history" -a
-#          git show '--stat-count=10' HEAD
-#          git config --list
+          cd status
+          git config user.email "dev-bot@jina.ai"
+          git config user.name "Jina Dev Bot"
+          git add README.md build-history.json hub-stat.svg
+          git commit -qm "chore: update readme and build history" -a
+          git show '--stat-count=10' HEAD
+          git config --list
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
