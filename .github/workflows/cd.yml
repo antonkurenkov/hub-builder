@@ -50,9 +50,8 @@ jobs:
     if: "needs.checkupdate.outputs.updated == 'true'"
     runs-on: ubuntu-latest
     steps:
-      - name: git fetch
-        uses: actions/checkout@v2
-        run: git fetch --prune --unshallow
+      - uses: actions/checkout@v2
+      - run: git fetch --prune --unshallow
       - name: pull status repo
         uses: actions/checkout@v2
         with:
