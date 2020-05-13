@@ -71,10 +71,11 @@ class Loader(Mongo):
 
     @staticmethod
     def get_from_local():
-        if os.path.isfile(build_hist_path):
-            with open(build_hist_path, 'r') as fp:
-                hist = json.load(fp)
-            return hist
+        # if os.path.isfile(build_hist_path):
+        #     with open(build_hist_path, 'r') as fp:
+        #         hist = json.load(fp)
+        #     return hist
+        pass
 
     def get_targets(self):
         to_be_updated_targets = set()
