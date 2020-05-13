@@ -200,7 +200,7 @@ class MultiBuilder(SingleBuilder, Loader):
             h1 = f'## Last Build at: {datetime.now():%Y-%m-%d %H:%M:%S %Z}'
             h2 = '<summary>Reason</summary>'
             h3 = '**Images**'
-            reason = '\n\n'.join([v for v in self.reason])
+            reason = ''.join([v for v in self.reason])
             tmp = re.sub(
                 pattern=build_badge_regex,
                 repl='\n\n'.join([build_badge_prefix, h1, h3, badge_str, '<details>', h2, reason, '</details>']),
