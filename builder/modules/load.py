@@ -15,10 +15,10 @@ build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
 builder_files = list(Path(root_dir).glob('app.py')) + \
                 list(Path(root_dir).glob('builder/*.yml'))
 
-valid_files = list(Path(root_dir).glob('testhub/**/*.y*ml')) + \
-            list(Path(root_dir).glob('testhub/**/*Dockerfile')) + \
-            list(Path(root_dir).glob('testhub/**/*.py'))
-ignore_files = list(Path(root_dir).glob('testhub/**/jina/**/*'))
+valid_files = list(Path(root_dir).glob('hubtest/**/*.y*ml')) + \
+            list(Path(root_dir).glob('hubtest/**/*Dockerfile')) + \
+            list(Path(root_dir).glob('hubtest/**/*.py'))
+ignore_files = list(Path(root_dir).glob('hubtest/**/jina/**/*'))
 hub_files = list(set(valid_files) - set(ignore_files))
 
 
