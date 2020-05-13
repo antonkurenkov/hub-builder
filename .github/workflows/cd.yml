@@ -16,17 +16,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
-      - uses: actions/checkout@v2
+      - name: pull status repo
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/hub-status
           path: status
           token: ${{ secrets.JINA_DEV_BOT }}
-      - uses: actions/checkout@v2
+      - name: pull api repo
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/api
           path: api
           token: ${{ secrets.JINA_DEV_BOT }}
-      - uses: actions/checkout@v2
+      - name: pull hub repo
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
           path: hub
@@ -34,7 +37,7 @@ jobs:
       - uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: check if rebuild necessary
+      - name: check if there are images to build
         id: updatestatus
         run: |
           pip install -r builder/requirements.txt
@@ -49,21 +52,25 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
-      - uses: actions/checkout@v2
+      - name: pull status repo
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/hub-status
           path: status
           token: ${{ secrets.JINA_DEV_BOT }}
-      - uses: actions/checkout@v2
+      - name: pull api repo
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/api
           path: api
           token: ${{ secrets.JINA_DEV_BOT }}
-      - uses: actions/checkout@v2
+      - name: pull hub repo
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
           path: hub
           token: ${{ secrets.JINA_DEV_BOT }}
+      - name: pull jina repo
       - uses: actions/checkout@v2
         with:
           repository: jina-ai/jina
@@ -72,7 +79,7 @@ jobs:
       - uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Set up Docker Buildx
+      - name: set up Docker Buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v1
         with:
@@ -97,13 +104,14 @@ jobs:
           git commit -qm "chore: update readme and hub badge" -a
           git show '--stat-count=10' HEAD
           git config --list
-      - uses: ad-m/github-push-action@master
+      - name: push readme and hub badge
+        uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/hub-status
           force: true
           directory: status/
-      - name: commit build.json
+      - name: commit build history
         run: |
           cd api
           git config --local user.email "dev-bot@jina.ai"
@@ -112,7 +120,8 @@ jobs:
           git commit -qm "chore: update build history" -a
           git show '--stat-count=10' HEAD
           git config --list
-      - uses: ad-m/github-push-action@master
+      - name: push build history
+        uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/api
