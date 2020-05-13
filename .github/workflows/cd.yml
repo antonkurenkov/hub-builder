@@ -50,8 +50,9 @@ jobs:
     if: "needs.checkupdate.outputs.updated == 'true'"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow
+      - name: git fetch
+        uses: actions/checkout@v2
+        run: git fetch --prune --unshallow
       - name: pull status repo
         uses: actions/checkout@v2
         with:
@@ -71,7 +72,7 @@ jobs:
           path: hub
           token: ${{ secrets.JINA_DEV_BOT }}
       - name: pull jina repo
-      - uses: actions/checkout@v2
+        uses: actions/checkout@v2
         with:
           repository: jina-ai/jina
           path: src/jina
