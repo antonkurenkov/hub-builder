@@ -83,29 +83,35 @@ jobs:
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
           python app.py --reason "master got pushed" --push
-          git config --global user.email "dev-bot@jina.ai"
-          git config --global user.name "Jina Dev Bot"
-          cd status
-          git add README.md hub-stat.svg
-          git commit -qm "chore: update readme and hub badge" -a
-          git show '--stat-count=10' HEAD
-          git config --list
-          cd ../api
-          git add build.json
-          git commit -qm "chore: update build history" -a
-          git show '--stat-count=10' HEAD
-          git config --list
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
           DOCKERHUB_DEVBOT_TOKEN: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
         timeout-minutes: 30
+      - name: commit readme and hub badge
+        run: |
+          cd status
+          git config --local user.email "dev-bot@jina.ai"
+          git config --local user.name "Jina Dev Bot"
+          git add README.md hub-stat.svg
+          git commit -qm "chore: update readme and hub badge" -a
+          git show '--stat-count=10' HEAD
+          git config --list
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/hub-status
           force: true
           directory: status/
+      - name: commit build.json
+        run: |
+          cd api
+          git config --local user.email "dev-bot@jina.ai"
+          git config --local user.name "Jina Dev Bot"
+          git add build.json
+          git commit -qm "chore: update build history" -a
+          git show '--stat-count=10' HEAD
+          git config --list
       - uses: ad-m/github-push-action@master
           with:
             github_token: ${{ secrets.JINA_DEV_BOT }}
