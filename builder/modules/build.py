@@ -165,27 +165,28 @@ class MultiBuilder(SingleBuilder, Loader):
 
             self.target = target
             self.canonic_name = self.get_canonic_name(self.target)
+            if self.canonic_name not in self.image_map:
+                self.image_map[self.canonic_name] = []
             print(print_green(f'\nImage ({i + 1}/{len(targets)}): ') + self.canonic_name)
             self.status_map[self.canonic_name] = 'pending'
             try:
                 super().run()
-                docker_inspect_output = subprocess.check_output(['docker', 'inspect', self.img_name]).strip().decode()
-                tmp = json.loads(docker_inspect_output)[0]
-
-                if self.canonic_name not in self.image_map:
-                    self.image_map[self.canonic_name] = []
-                self.image_map[self.canonic_name].append({
-                    'Status': True,
-                    'LastBuildTime': int(time.time()),
-                    'Inspect': tmp,
-                })
+                status = True
                 self.status_map[self.canonic_name] = 'success'
                 print(print_green('Successfully delivered image ') + self.canonic_name)
-                success += 1
-
             except Exception as ex:
+                status = False
                 self.status_map[self.canonic_name] = 'fail'
                 print(print_red(ex) + f' while delivering image {self.canonic_name}')
+            success += status
+
+            docker_inspect_output = subprocess.check_output(['docker', 'inspect', self.img_name]).strip().decode()
+            tmp = json.loads(docker_inspect_output)[0]
+            self.image_map[self.canonic_name].append({
+                'Status': status,
+                'LastBuildTime': int(time.time()),
+                'Inspect': tmp,
+            })
 
         return success
 
