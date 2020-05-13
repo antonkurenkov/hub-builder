@@ -1,5 +1,6 @@
 # Initially taken from Github's Python gitignore file
 
+api
 hub
 src
 status

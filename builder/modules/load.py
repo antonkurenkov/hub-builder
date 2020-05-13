@@ -19,7 +19,8 @@ valid_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
               list(Path(root_dir).glob('hub/**/*Dockerfile')) + \
               list(Path(root_dir).glob('hub/**/*.py'))
 ignore_files = list(Path(root_dir).glob('hub/**/jina/**/*')) + \
-               list(Path(root_dir).glob('hub/.github/**/*'))
+               list(Path(root_dir).glob('hub/.github/**/*')) + \
+               list(Path(root_dir).glob('hub/builder/**/*'))
 hub_files = list(set(valid_files) - set(ignore_files))
 
 
