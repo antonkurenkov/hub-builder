@@ -55,10 +55,10 @@ jobs:
           path: status
           token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
-          with:
-            repository: jina-ai/api
-            path: api
-            token: ${{ secrets.JINA_DEV_BOT }}
+        with:
+          repository: jina-ai/api
+          path: api
+          token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
