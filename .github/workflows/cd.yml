@@ -83,8 +83,8 @@ jobs:
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
           python app.py --reason "master got pushed" --push
-          git config user.email "dev-bot@jina.ai"
-          git config user.name "Jina Dev Bot"
+          git config --global user.email "dev-bot@jina.ai"
+          git config --global user.name "Jina Dev Bot"
           cd status
           git add README.md hub-stat.svg
           git commit -qm "chore: update readme and hub badge" -a
