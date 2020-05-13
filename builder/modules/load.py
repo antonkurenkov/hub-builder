@@ -10,15 +10,16 @@ from ruamel.yaml import YAML
 yaml = YAML()
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
+build_hist_path = os.path.join(root_dir, 'api', 'hub', 'build.json')
 
 builder_files = list(Path(root_dir).glob('app.py')) + \
                 list(Path(root_dir).glob('builder/*.yml'))
 
-valid_files = list(Path(root_dir).glob('hubtest/**/*.y*ml')) + \
-            list(Path(root_dir).glob('hubtest/**/*Dockerfile')) + \
-            list(Path(root_dir).glob('hubtest/**/*.py'))
-ignore_files = list(Path(root_dir).glob('hubtest/**/jina/**/*'))
+valid_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
+              list(Path(root_dir).glob('hub/**/*Dockerfile')) + \
+              list(Path(root_dir).glob('hub/**/*.py'))
+ignore_files = list(Path(root_dir).glob('hub/**/jina/**/*')) + \
+               list(Path(root_dir).glob('hub/.github/**/*'))
 hub_files = list(set(valid_files) - set(ignore_files))
 
 
@@ -93,7 +94,7 @@ class Loader(Mongo):
 
             if is_target_to_be_added:
                 to_be_updated_targets.add(target)
-                print(print_green('\nFound target file ') + str(file_path))
+                print(print_green('Found target file ') + str(file_path))
                 print(f'Last build time: {last_image_build_time or "---"}')
                 print(f'Target modified time: {self.get_hr_time(modified_time)}')
 
@@ -167,7 +168,7 @@ class Loader(Mongo):
         if r:
             return int(r)
         else:
-            print(print_red(f'Can\'t fetch the modified time of {file_path}, is it under git?'))
+            print(print_red(f'\nCan\'t fetch the modified time of {file_path}, is it under git?'))
             return 0
 
     @staticmethod

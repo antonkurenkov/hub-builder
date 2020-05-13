@@ -17,7 +17,8 @@ yaml = YAML()
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 jinasrc_dir = os.path.join(root_dir, 'src', 'jina')
-build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
+build_hist_path = os.path.join(root_dir, 'api', 'hub', 'build.json')
+status_path = os.path.join(root_dir, 'api', 'hub', 'status.json')
 readme_path = os.path.join(root_dir, 'status', 'README.md')
 hubbadge_path = os.path.join(root_dir, 'status', 'hub-stat.svg')
 
@@ -87,10 +88,10 @@ class SingleBuilder(Validator, Loader):
         dockerbuild_action = '--push' if self.push else '--load'
         docker_cmd = dockerbuild_cmd + dockerbuild_platform + dockerbuild_args + [dockerbuild_action, self.target]
 
-        print(print_green('Starting docker build for image ') + self.canonic_name)
+        print(print_green('Starting docker build for image ') + self.canonic_name + '\n')
         subprocess.check_call(docker_cmd)
 
-        print(print_green('Successfully built image ') + self.canonic_name)
+        print(print_green('Successfully built image ') + self.canonic_name + '\n')
         self.last_build_time[self.canonic_name] = int(time.time())
         return image_name
 
@@ -125,7 +126,7 @@ class SingleBuilder(Validator, Loader):
 
     @staticmethod
     def check_image_in_hub(img_name):
-        print(print_green('Pulling image ') + img_name + '\n')
+        print(print_green('Pulling image ') + img_name)
         subprocess.check_call(['docker', 'pull', img_name])
 
 
@@ -237,6 +238,8 @@ class MultiBuilder(SingleBuilder, Loader):
         }
 
         if local:
+            if not os.path.isdir(os.path.dirname(build_hist_path)):
+                os.mkdir(os.path.join(root_dir, 'api', 'hub'))
             with open(build_hist_path, 'w') as fp:
                 json.dump(data, fp)
                 print(print_green('History updated successfully on path ') + str(build_hist_path))

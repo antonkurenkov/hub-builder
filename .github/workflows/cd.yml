@@ -16,15 +16,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
-#      - uses: actions/checkout@v2
-#        with:
-#          repository: jina-ai/hub-status
-#          path: status
-#          token: ${{ secrets.JINA_DEV_BOT }}
+      - uses: actions/checkout@v2
+        with:
+          repository: jina-ai/hub-status
+          path: status
+          token: ${{ secrets.JINA_DEV_BOT }}
+      - uses: actions/checkout@v2
+          with:
+            repository: jina-ai/api
+            path: api
+            token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
-          path: hubtest
+          path: hub
           token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/setup-python@v1
         with:
@@ -44,15 +49,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
-#      - uses: actions/checkout@v2
-#        with:
-#          repository: jina-ai/hub-status
-#          path: status
-#          token: ${{ secrets.JINA_DEV_BOT }}
+      - uses: actions/checkout@v2
+        with:
+          repository: jina-ai/hub-status
+          path: status
+          token: ${{ secrets.JINA_DEV_BOT }}
+      - uses: actions/checkout@v2
+          with:
+            repository: jina-ai/api
+            path: api
+            token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
-          path: hubtest
+          path: hub
           token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:
@@ -73,11 +83,16 @@ jobs:
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
           python app.py --reason "master got pushed" --push
-          cd status
           git config user.email "dev-bot@jina.ai"
           git config user.name "Jina Dev Bot"
-          git add README.md build-history.json hub-stat.svg
-          git commit -qm "chore: update readme and build history" -a
+          cd status
+          git add README.md hub-stat.svg
+          git commit -qm "chore: update readme and hub badge" -a
+          git show '--stat-count=10' HEAD
+          git config --list
+          cd ../api/hub
+          git add build.json
+          git commit -qm "chore: update build history" -a
           git show '--stat-count=10' HEAD
           git config --list
         env:
