@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
-          path: hub
+          path: testhub
           token: ${{ secrets.JINA_DEV_BOT }}
       - uses: actions/checkout@v2
         with:

@@ -12,7 +12,7 @@ yaml = YAML()
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 build_hist_path = os.path.join(root_dir, 'status', 'build-history.json')
 
-builder_files = list(Path(root_dir).glob('builder/app.py')) + \
+builder_files = list(Path(root_dir).glob('app.py')) + \
                 list(Path(root_dir).glob('builder/*.yml'))
 
 valid_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
