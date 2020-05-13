@@ -113,11 +113,11 @@ jobs:
           git show '--stat-count=10' HEAD
           git config --list
       - uses: ad-m/github-push-action@master
-          with:
-            github_token: ${{ secrets.JINA_DEV_BOT }}
-            repository: jina-ai/api
-            force: true
-            directory: api/
+        with:
+          github_token: ${{ secrets.JINA_DEV_BOT }}
+          repository: jina-ai/api
+          force: true
+          directory: api/
       - uses: technote-space/toc-generator@v2
         with:
           MAX_HEADER_LEVEL: 3
