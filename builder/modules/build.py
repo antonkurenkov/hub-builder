@@ -254,7 +254,7 @@ class MultiBuilder(SingleBuilder, Loader):
         if response.ok:
             with open(hubbadge_path, 'wb') as opfile:
                 opfile.write(response.content)
-            print(print_yellow('Badge updated successfully on path ') + str(hubbadge_path))
+            print(print_green('Badge updated successfully on path ') + str(hubbadge_path))
         else:
             print(print_red('Badge update failed ') + str(hubbadge_path))
 
