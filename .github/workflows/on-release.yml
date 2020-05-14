@@ -1,15 +1,12 @@
-name: CD
+name: on-release
 
-on:
-  schedule:
-    - cron: "*/20 * * * *"
   push:
     branches:
       - master
 
 jobs:
   checkupdate:
-    if: "!startsWith(github.event.head_commit.message, 'chore')"
+    if: "!startsWith(github.event.head_commit.message, 'chore')" & "startsWith(github.event.head_commit.modified, 'hub-builder/builder/'"
     runs-on: ubuntu-latest
     outputs:
       updated: ${{ steps.updatestatus.outputs.updated }}
@@ -101,7 +98,7 @@ jobs:
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
-          python app.py --reason "master got pushed" --bleach-first
+          python app.py --reason "master got pushed" --bleach-first --update-strategy=on-release
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}

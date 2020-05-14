@@ -49,7 +49,8 @@ class Builder:
                     exit(0)
             for path in targets:
                 target = Target(path)
-                self.build_single(target, history)
+                if self.check_update_strategy(target):
+                    self.build_single(target, history)
         state.update_total_history(history)
 
     @staticmethod
@@ -137,3 +138,14 @@ class Builder:
     @staticmethod
     def get_canonic_name(target):
         return os.path.relpath(target).replace('/', '.').strip('.')
+
+    def check_update_strategy(self, target):
+        target_strategy = target.manifest.get('update', 'nightly')
+        current_strategy = self.args.update_strategy
+        if current_strategy == 'on-release':
+            if target_strategy not in ['manual', 'never']:
+                return True
+        if current_strategy == target_strategy == 'nightly':
+            return True
+        if current_strategy == target_strategy == 'manual':
+            return True
