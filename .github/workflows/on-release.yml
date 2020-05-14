@@ -10,24 +10,21 @@ jobs:
   getmodified:
     if: "!startsWith(github.event.head_commit.message, 'chore')"
     runs-on: ubuntu-latest
+    outputs:
+      modified: ${{ steps.updatestatus.outputs.modified }}
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
       - name: get modified files
         run: |
-          CONTAINS=false
           MODIFIED=$(git log -1 --name-only --oneline | tail -n+2)
-          for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then CONTAINS=true; fi; done
-          echo ${MODIFIED[@]}
-          echo ${TRIGGERS[@]}
-          echo $CONTAINS
-          echo "::set-output name=triggers::$CONTAINS"
+          for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then echo "::set-output name=modified::true"; fi; done
         env:
           TRIGGERS: builder/modules/build.py builder/modules/target.py builder/modules/load.py builder/modules/valid.py
 
   checkupdate:
     needs: getmodified
-    if: "needs.getmodified.outputs.triggers == 'true'"
+    if: "needs.getmodified.outputs.modified == 'true'"
     runs-on: ubuntu-latest
     outputs:
       updated: ${{ steps.updatestatus.outputs.updated }}
