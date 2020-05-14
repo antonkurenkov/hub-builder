@@ -1,6 +1,5 @@
 import argparse
-import subprocess
-from builder.modules.build import SingleBuilder, MultiBuilder
+from builder.modules.build import Builder
 
 
 def get_parser():
@@ -20,30 +19,13 @@ def get_parser():
                         help='check if there is anything to update')
     parser.add_argument('--bleach-first', action='store_true', default=False,
                         help='clear docker before starting the build')
+    parser.add_argument('--update-strategy', type=str,
+                        help='set update strategy for this build')
     return parser
-
-
-def clean_docker():
-    print('\033[32m' + 'Removing all existing docker instances' + '\033[0m')
-    for k in ['df -h',
-              'docker stop $(docker ps -aq)',
-              'docker rm $(docker ps -aq)',
-              'docker rmi -f $(docker image ls -aq)',
-              'df -h']:
-        try:
-            subprocess.check_call(k, shell=True)
-        except subprocess.CalledProcessError:
-            pass
 
 
 if __name__ == '__main__':
     args = get_parser().parse_args()
-    if args.bleach_first:
-        clean_docker()
-    if args.target and not args.check_targets:
-        builder = SingleBuilder(args)
-    else:
-        builder = MultiBuilder(args)
+    builder = Builder(args)
     builder.run()
 
-#
