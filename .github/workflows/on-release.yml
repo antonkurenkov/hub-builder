@@ -7,7 +7,8 @@ on:
 
 jobs:
   test:
-    run: echo ${{ github }}
+    steps:
+      run: echo ${{ github }}
 
 #jobs:
 #  checkupdate:
