@@ -11,7 +11,7 @@ jobs:
     if: "!startsWith(github.event.head_commit.message, 'chore')"
     runs-on: ubuntu-latest
     outputs:
-      modified: ${{ steps.updatestatus.outputs.modified }}
+      modified: ${{ steps.getmodified.outputs.modified }}
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
@@ -27,7 +27,7 @@ jobs:
     if: "needs.getmodified.outputs.modified == 'true'"
     runs-on: ubuntu-latest
     outputs:
-      updated: ${{ steps.updatestatus.outputs.updated }}
+      updated: ${{ steps.checkupdate.outputs.updated }}
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
