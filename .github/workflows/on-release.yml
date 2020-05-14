@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  getmodified:
+  checkmodified:
     if: "!startsWith(github.event.head_commit.message, 'chore')"
     runs-on: ubuntu-latest
     outputs:
@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
       - name: get modified files
+        id: getmodified
         run: |
           MODIFIED=$(git log -1 --name-only --oneline | tail -n+2)
           for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then echo "::set-output name=modified::true"; fi; done
@@ -23,11 +24,11 @@ jobs:
           TRIGGERS: builder/modules/build.py builder/modules/target.py builder/modules/load.py builder/modules/valid.py
 
   checkupdate:
-    needs: getmodified
-    if: "needs.getmodified.outputs.modified == 'true'"
+    needs: checkmodified
+    if: "needs.checkmodified.outputs.modified == 'true'"
     runs-on: ubuntu-latest
     outputs:
-      updated: ${{ steps.checkupdate.outputs.updated }}
+      updated: ${{ steps.updatestatus.outputs.updated }}
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
