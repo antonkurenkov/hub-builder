@@ -164,4 +164,3 @@ class Builder:
         if current_strategy == 'force':
             if target_strategy != 'never':
                 return True
-
