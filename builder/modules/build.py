@@ -97,15 +97,13 @@ class Builder:
         builder_updated_timestamp = self.get_builder_update_history()
 
         for file_path in hub_files:
-            modified_time = self.get_modified_time(file_path)
             target = os.path.dirname(os.path.abspath(file_path))
             canonic_name = os.path.relpath(target).replace('/', '.').strip('.')
+
+            modified_time = self.get_modified_time(file_path)
             last_build_timestamp = history.get('LastBuildTime', {}).get(canonic_name, 0)
             is_target_to_be_added = False
-            if builder_updated_timestamp > last_build_timestamp:
-                self.args.reason = 'builder update'
-                is_target_to_be_added = True
-            elif modified_time > last_build_timestamp:
+            if builder_updated_timestamp > last_build_timestamp or modified_time > last_build_timestamp:
                 is_target_to_be_added = True
 
             if is_target_to_be_added or get_all:
