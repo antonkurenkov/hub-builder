@@ -86,7 +86,8 @@ class StateLoader(Mongo):
             h1 = f'## Last Build at: {datetime.datetime.now():%Y-%m-%d %H:%M:%S %Z}'
             h2 = '<summary>Reason</summary>'
             h3 = '**Images**'
-            content = [build_badge_prefix, h1, h3, badge_str, '<details>', h2, history['LastBuildReason'], '</details>']
+            reason = '\n\n'.join(history['LastBuildReason'])
+            content = [build_badge_prefix, h1, h3, badge_str, '<details>', h2, reason, '</details>']
             tmp = re.sub(pattern=build_badge_regex, repl='\n\n'.join(content), string=tmp, flags=re.DOTALL)
         with open(readme_path, 'w') as fp:
             fp.write(tmp)
