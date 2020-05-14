@@ -40,7 +40,10 @@ class Builder:
             target = Target(self.args.target)
             self.build_single(target, history)
         else:
-            targets = self.get_targets(history)
+            get_all = False
+            if self.args.update_strategy in ['core-release', 'builder-release', 'force']:
+                get_all = True
+            targets = self.get_targets(history, get_all)
             if self.args.check_targets:
                 if len(targets) == 0:
                     print(print_green('Nothing to build'))
@@ -89,7 +92,7 @@ class Builder:
         history['LastBuildStatus'][target.canonic_name] = status
         history['LastBuildReason'] = self.args.reason or self.args.update_strategy or 'test'
 
-    def get_targets(self, history):
+    def get_targets(self, history, get_all):
         to_be_updated_targets = set()
         builder_updated_timestamp = self.get_builder_update_history()
 
@@ -105,7 +108,7 @@ class Builder:
             elif modified_time > last_build_timestamp:
                 is_target_to_be_added = True
 
-            if is_target_to_be_added:
+            if is_target_to_be_added or get_all:
                 to_be_updated_targets.add(target)
                 print(print_green('Found target file ') + str(file_path))
                 print(f'Last build time: {self.get_hr_time(last_build_timestamp) if last_build_timestamp else None}')
@@ -140,12 +143,25 @@ class Builder:
         return os.path.relpath(target).replace('/', '.').strip('.')
 
     def check_update_strategy(self, target):
+        """
+        strategies mapping:
+        manifest: [on-release, nightly, manual, never]
+        from args: [nightly, manual, builder-release, core-release, force]
+        """
         target_strategy = target.manifest.get('update', 'nightly')
         current_strategy = self.args.update_strategy
-        if current_strategy == 'on-release':
+        if current_strategy == 'builder-release':
             if target_strategy not in ['manual', 'never']:
                 return True
-        if current_strategy == target_strategy == 'nightly':
-            return True
+        if current_strategy == 'nightly':
+            if target_strategy not in ['manual', 'never']:
+                return True
         if current_strategy == target_strategy == 'manual':
             return True
+        if current_strategy == 'core-release':
+            if target_strategy == 'on-release':
+                return True
+        if current_strategy == 'force':
+            if target_strategy != 'never':
+                return True
+
