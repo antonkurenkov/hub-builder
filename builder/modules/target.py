@@ -105,12 +105,13 @@ class Target:
         tmp = subprocess.check_output(['docker', 'inspect', full_image_name]).strip().decode()
         docker_inspect_output = json.loads(tmp)[0]
         self.update_target_readme()
-        print(print_green('Successfully built image ') + self.canonic_name + '\n')
+        print(print_green(f'Successfully built {"and pushed " if push else ""}image ') + self.canonic_name + '\n')
 
         if test:
             self.test_image(full_image_name)
         if push:
             self.push_image_readme()
+            self.pull_image(full_image_name)
 
         return docker_inspect_output
 
@@ -156,11 +157,10 @@ class Target:
         print(print_green('Successfully pushed readme for image ') + self.canonic_name)
 
     def update_target_readme(self):
-        if not os.path.exists(self.readme_path):
-            with open(self.readme_path, 'w') as fp:
-                fp.write('#{name}\n\n#{description}\n'.format_map(self.manifest))
+        with open(self.readme_path, 'w') as fp:
+            fp.write('#{name}\n\n#{description}\n'.format_map(self.manifest))
 
     @staticmethod
-    def pull_image(img_name):
-        print(print_green('Pulling image ') + img_name)
-        subprocess.check_call(['docker', 'pull', img_name])
+    def pull_image(full_image_name):
+        print(print_green('Pulling image ') + full_image_name)
+        subprocess.check_call(['docker', 'pull', full_image_name])
