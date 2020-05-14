@@ -6,13 +6,16 @@ on:
       - master
 
 jobs:
-  test:
+  getmodified:
     runs-on: ubuntu-latest
     steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
+      - uses: actions/checkout@v2
+      - run: git fetch --prune --unshallow
+      - name: get modified files
+        run: |
+          MODIFIED=$(git log -1 --name-only --oneline | tail -n+2)
+
+
 
 #jobs:
 #  checkupdate:
