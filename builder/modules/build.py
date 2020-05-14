@@ -34,8 +34,6 @@ class Builder:
     def run(self):
         state = StateLoader()
         history = state.get_history()
-        if self.args.bleach_first:
-            self.clean_docker()
         if self.args.target:
             target = Target(self.args.target)
             self.build_single(target, history)
@@ -53,6 +51,8 @@ class Builder:
             for path in targets:
                 target = Target(path)
                 if self.check_update_strategy(target):
+                    if self.args.bleach_first:
+                        self.clean_docker()
                     self.build_single(target, history)
         state.update_total_history(history)
 
