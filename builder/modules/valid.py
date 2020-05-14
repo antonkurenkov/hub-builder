@@ -55,4 +55,3 @@ class Validator:
                     f'platform {user_added_platform} is not supported, should be one of {supported_platforms}'
                 )
 
-
