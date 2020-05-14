@@ -21,13 +21,13 @@ jobs:
           echo ${MODIFIED[@]}
           echo ${TRIGGERS[@]}
           echo $CONTAINS
-          echo "::set-output name=modified::$CONTAINS"
+          echo "::set-output name=triggers::$CONTAINS"
         env:
           TRIGGERS: builder/modules/build.py builder/modules/target.py builder/modules/load.py builder/modules/valid.py
 
   checkupdate:
     needs: getmodified
-    if: "needs.getmodified.outputs.modified == 'true'"
+    if: "needs.getmodified.outputs.triggers == 'true'"
     runs-on: ubuntu-latest
     outputs:
       updated: ${{ steps.updatestatus.outputs.updated }}
