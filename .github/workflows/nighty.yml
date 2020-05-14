@@ -5,6 +5,7 @@ on:
     - cron: "0 0 * * *"
 
 jobs:
+
   check-updated-files:
     runs-on: ubuntu-latest
     outputs:

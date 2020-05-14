@@ -1,4 +1,4 @@
-name: on-release
+name: builder-release
 
 on:
   push:
@@ -23,52 +23,52 @@ jobs:
         env:
           TRIGGERS: builder/modules/build.py builder/modules/target.py builder/modules/load.py builder/modules/valid.py
 
-  check-updated-files:
-    needs: check-modified-triggers
-    if: "needs.check-modified-triggers.outputs.modified == 'true'"
-    runs-on: ubuntu-latest
-    outputs:
-      updated: ${{ steps.updatestatus.outputs.updated }}
-    steps:
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow
-
-      - name: pull jina-ai/hub-status repo
-        uses: actions/checkout@v2
-        with:
-          repository: jina-ai/hub-status
-          path: status
-          token: ${{ secrets.JINA_DEV_BOT }}
-
-      - name: pull jina-ai/api repo
-        uses: actions/checkout@v2
-        with:
-          repository: jina-ai/api
-          path: api
-          token: ${{ secrets.JINA_DEV_BOT }}
-
-      - name: pull jina-ai/jina-hub repo
-        uses: actions/checkout@v2
-        with:
-          repository: jina-ai/jina-hub
-          path: hub
-          token: ${{ secrets.JINA_DEV_BOT }}
-
-      - uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-
-      - name: check if there are images to build
-        id: updatestatus
-        run: |
-          pip install -r builder/requirements.txt
-          python app.py --check-targets --update-strategy=builder-release && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
-        env:
-          MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
+#  check-updated-files:
+#    needs: check-modified-triggers
+#    if: "needs.check-modified-triggers.outputs.modified == 'true'"
+#    runs-on: ubuntu-latest
+#    outputs:
+#      updated: ${{ steps.updatestatus.outputs.updated }}
+#    steps:
+#      - uses: actions/checkout@v2
+#      - run: git fetch --prune --unshallow
+#
+#      - name: pull jina-ai/hub-status repo
+#        uses: actions/checkout@v2
+#        with:
+#          repository: jina-ai/hub-status
+#          path: status
+#          token: ${{ secrets.JINA_DEV_BOT }}
+#
+#      - name: pull jina-ai/api repo
+#        uses: actions/checkout@v2
+#        with:
+#          repository: jina-ai/api
+#          path: api
+#          token: ${{ secrets.JINA_DEV_BOT }}
+#
+#      - name: pull jina-ai/jina-hub repo
+#        uses: actions/checkout@v2
+#        with:
+#          repository: jina-ai/jina-hub
+#          path: hub
+#          token: ${{ secrets.JINA_DEV_BOT }}
+#
+#      - uses: actions/setup-python@v1
+#        with:
+#          python-version: 3.7
+#
+#      - name: check if there are images to build
+#        id: updatestatus
+#        run: |
+#          pip install -r builder/requirements.txt
+#          python app.py --check-targets --update-strategy=builder-release && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
+#        env:
+#          MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
 
   build-update:
-    needs: check-updated-files
-    if: "needs.check-updated-files.outputs.updated == 'true'"
+    needs: check-modified-triggers
+    if: "needs.check-modified-triggers.outputs.modified == 'true'"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
