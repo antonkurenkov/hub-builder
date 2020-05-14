@@ -39,7 +39,7 @@ class Builder:
             self.build_single(target, history)
         else:
             get_all = False
-            if self.args.update_strategy in ['core-release', 'builder-release', 'force']:
+            if self.args.update_strategy in ['core-release', 'builder-release', 'hub-release']:
                 get_all = True
             targets = self.get_targets(history, get_all)
             if self.args.check_targets:
@@ -159,6 +159,6 @@ class Builder:
         if current_strategy == 'core-release':
             if target_strategy == 'on-release':
                 return True
-        if current_strategy == 'force':
+        if current_strategy == 'hub-release':
             if target_strategy != 'never':
                 return True
