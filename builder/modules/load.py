@@ -126,3 +126,4 @@ class StateLoader(Mongo):
             print(print_green('Hub badge updated successfully on path ') + str(hubbadge_path))
         else:
             print(print_red('Hub badge update failed ') + str(hubbadge_path))
+
