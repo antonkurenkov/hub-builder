@@ -17,7 +17,6 @@ jobs:
         run: |
           CONTAINS=false
           MODIFIED=$(git log -1 --name-only --oneline | tail -n+2)
-#          for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then echo "::set-output name=modified::true"; fi; done
           for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then CONTAINS=true; fi; done
           echo ${MODIFIED[@]}
           echo ${TRIGGERS[@]}
