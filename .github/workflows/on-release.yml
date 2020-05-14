@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  checkmodified:
+  check-modified-triggers:
     if: "!startsWith(github.event.head_commit.message, 'chore')"
     runs-on: ubuntu-latest
     outputs:
@@ -23,9 +23,9 @@ jobs:
         env:
           TRIGGERS: builder/modules/build.py builder/modules/target.py builder/modules/load.py builder/modules/valid.py
 
-  checkupdate:
-    needs: checkmodified
-    if: "needs.checkmodified.outputs.modified == 'true'"
+  check-updated-files:
+    needs: check-modified-triggers
+    if: "needs.check-modified-triggers.outputs.modified == 'true'"
     runs-on: ubuntu-latest
     outputs:
       updated: ${{ steps.updatestatus.outputs.updated }}
@@ -67,8 +67,8 @@ jobs:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
 
   build-update:
-    needs: checkupdate
-    if: "needs.checkupdate.outputs.updated == 'true'"
+    needs: check-updated-files
+    if: "needs.check-updated-files.outputs.updated == 'true'"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

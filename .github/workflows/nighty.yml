@@ -5,7 +5,7 @@ on:
     - cron: "0 0 * * *"
 
 jobs:
-  checkupdate:
+  check-updated-files:
     runs-on: ubuntu-latest
     outputs:
       updated: ${{ steps.updatestatus.outputs.updated }}
@@ -46,9 +46,9 @@ jobs:
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
 
-  build-update:
-    needs: checkupdate
-    if: "needs.checkupdate.outputs.updated == 'true'"
+  build-updated-files:
+    needs: check-updated-files
+    if: "needs.check-updated-files.outputs.updated == 'true'"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
