@@ -17,12 +17,12 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 builder_files = list(Path(root_dir).glob('app.py')) + \
                 list(Path(root_dir).glob('builder/*.yml'))
 
-valid_files = list(Path(root_dir).glob('hub/**/*.y*ml')) + \
-              list(Path(root_dir).glob('hub/**/*Dockerfile')) + \
-              list(Path(root_dir).glob('hub/**/*.py'))
-ignore_files = list(Path(root_dir).glob('hub/**/jina/**/*')) + \
-               list(Path(root_dir).glob('hub/.github/**/*')) + \
-               list(Path(root_dir).glob('hub/builder/**/*'))
+valid_files = list(Path(root_dir).glob('hub/hub/**/*.y*ml')) + \
+              list(Path(root_dir).glob('hub/hub/**/*Dockerfile')) + \
+              list(Path(root_dir).glob('hub/hub/**/*.py'))
+ignore_files = list(Path(root_dir).glob('hub/hub/**/jina/**/*')) + \
+               list(Path(root_dir).glob('hub/hub/.github/**/*')) + \
+               list(Path(root_dir).glob('hub/hub/builder/**/*'))
 hub_files = list(set(valid_files) - set(ignore_files))
 
 
