@@ -144,7 +144,7 @@ class Builder:
         """
         strategies mapping:
         manifest: [on-release, nightly, manual, never]
-        from args: [nightly, manual, builder-release, core-release, force]
+        from args: [nightly, manual, builder-release, core-release, hub-release]
         """
         target_strategy = target.manifest.get('update', 'nightly')
         current_strategy = self.args.update_strategy

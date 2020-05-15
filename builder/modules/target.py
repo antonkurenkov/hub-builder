@@ -102,17 +102,17 @@ class Target:
 
         print(print_green('\nStarting docker build for image ') + self.canonic_name)
         subprocess.check_call(docker_cmd)
-        tmp = subprocess.check_output(['docker', 'inspect', full_image_name]).strip().decode()
-        docker_inspect_output = json.loads(tmp)[0]
-        self.update_target_readme()
-        print(print_green(f'Successfully built {"and pushed " if push else ""}image ') + self.canonic_name + '\n')
 
         if test:
             self.test_image(full_image_name)
         if push:
             self.push_image_readme()
-            self.pull_image(full_image_name)
 
+        self.pull_image(full_image_name)
+        tmp = subprocess.check_output(['docker', 'inspect', full_image_name]).strip().decode()
+        docker_inspect_output = json.loads(tmp)[0]
+        self.update_target_readme()
+        print(print_green(f'Successfully built {"and pushed " if push else ""}image ') + self.canonic_name + '\n')
         return docker_inspect_output
 
     def prepare_docker_cmd(self, docker_registry, full_image_name, push):
