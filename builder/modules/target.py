@@ -148,7 +148,7 @@ class Target:
         docker_cmd = [
             'docker', 'run', '-v', f'{self.path}:/workspace',
             '-e', f'DOCKERHUB_USERNAME={os.environ["DOCKERHUB_DEVBOT_USER"]}',
-            '-e', f'DOCKERHUB_PASSWORD={os.environ["DOCKERHUB_DEVBOT_PASSWORD"]}',
+            '-e', f'DOCKERHUB_PASSWORD={os.environ["DOCKERHUB_DEVBOT_PWD"]}',
             '-e', f'DOCKERHUB_REPOSITORY={docker_registry}{self.canonic_name}',
             '-e', 'README_FILEPATH=/workspace/README.md',
             'peterevans/dockerhub-description:2.1'
