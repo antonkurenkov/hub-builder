@@ -69,19 +69,19 @@ jobs:
         with:
           version: latest
 
-      - name: build and test all new images
+      - name: build all images
         run: |
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
-          python app.py --reason "builder update" --bleach-first --update-strategy=builder-release --test
+          python app.py --reason "builder update" --bleach-first --update-strategy=builder-release
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
           DOCKERHUB_DEVBOT_TOKEN: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
         timeout-minutes: 30
 
-      - name: commit readme and hub badge
+      - name: commit new hub readme and badge
         run: |
           cd status
           git config --local user.email "dev-bot@jina.ai"
