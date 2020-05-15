@@ -15,7 +15,7 @@ class Target:
 
     def __init__(self, path):
         self.path = path
-        self.canonic_name = os.path.relpath(path).replace('/', '.').strip('.')[4:]
+        self.canonic_name = str(os.path.relpath(path).replace('/', '.').strip('.')[4:])
         self.manifest_path = os.path.join(path, 'manifest.yml')
         self.dockerfile_path = os.path.join(path, 'Dockerfile')
         self.readme_path = os.path.join(path, 'README.md')
