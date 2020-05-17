@@ -2,6 +2,7 @@ import os
 import time
 import subprocess
 
+from enum import IntEnum
 from pathlib import Path
 from ruamel.yaml import YAML
 
@@ -39,7 +40,7 @@ class Builder:
             self.build_single(target, history)
         else:
             get_all = False
-            if self.args.update_strategy in ['core-release', 'builder-release', 'hub-release']:
+            if self.args.update_strategy == 'on-release':
                 get_all = True
             targets = self.get_targets(history, get_all)
             if self.args.check_targets:
@@ -141,24 +142,29 @@ class Builder:
         return os.path.relpath(target).replace('/', '.').strip('.')
 
     def check_update_strategy(self, target):
-        """
-        strategies mapping:
-        manifest: [on-release, nightly, manual, never]
-        from args: [nightly, manual, builder-release, core-release, hub-release]
-        """
+
+        event_map = {
+            'force': 0,
+            'manually': 20,
+            'on-release': 30,
+            'nightly': 40,
+            'on-master': 50
+        }
+
+        strategy_map = {
+            'never': 10,
+            'manually': 20,
+            'on-release': 30,
+            'nightly': 40,
+            'on-master': 50
+        }
+
         target_strategy = target.manifest.get('update', 'nightly')
         current_strategy = self.args.update_strategy
-        if current_strategy == 'builder-release':
-            if target_strategy not in ['manual', 'never']:
+        try:
+            event_level = event_map[current_strategy]
+            update_level = strategy_map[target_strategy]
+            if event_level >= update_level:
                 return True
-        if current_strategy == 'nightly':
-            if target_strategy not in ['manual', 'never']:
-                return True
-        if current_strategy == target_strategy == 'manual':
-            return True
-        if current_strategy == 'core-release':
-            if target_strategy == 'on-release':
-                return True
-        if current_strategy == 'hub-release':
-            if target_strategy != 'never':
-                return True
+        except KeyError as e:
+            print(print_red(f'{e} is not valid strategy for ') + target.canonic_name)
