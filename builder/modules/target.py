@@ -44,7 +44,7 @@ class Target:
     @staticmethod
     def check_manifest(manifest):
         allowed = {'name', 'description', 'author', 'url', 'documentation', 'version',
-                   'vendor', 'license', 'avatar', 'platform', 'update'}
+                   'vendor', 'license', 'avatar', 'platform', 'update', 'keywords'}
         required = {'name', 'description'}
         keys = set(manifest.keys())
         if len(required - keys) > 0:
@@ -69,6 +69,7 @@ class Target:
         manifest['platform'] = manifest.get('platform', [])
         manifest['revision'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
         manifest['source'] = 'https://github.com/jina-ai/jina-hub/commit/' + manifest['revision']
+        manifest['keywords'] = ','.join(manifest.get('keywords', [])[:20]) # take at most 20 keywords
 
     def update_dockerfile_with_label(self):
         label_prefix = 'ai.jina.hub.'
