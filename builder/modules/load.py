@@ -24,15 +24,19 @@ class Mongo:
             client = MongoClient(address)
             self.db = client['jina-test']
         else:
+            self.db = None
             print(f'Incorrect credentials "{credentials}" for DB connection. Will use status.json as history source.')
 
     def update_history_on_db(self, **kwargs):
-        spec = {'_id': 1}
-        self.db.docker.replace_one(filter=spec, replacement=dict(**kwargs), upsert=True)
+        if self.db:
+            spec = {'_id': 1}
+            self.db.docker.replace_one(filter=spec, replacement=dict(**kwargs), upsert=True)
+            print(print_green('Hub history updated successfully on database'))
 
     def get_history_from_database(self):
-        spec = {'_id': 1}
-        return self.db.docker.find_one(filter=spec)
+        if self.db:
+            spec = {'_id': 1}
+            return self.db.docker.find_one(filter=spec)
 
     # def select_head(self, n):
     #     return dict(self.db.docker.find().limit(n))
@@ -113,7 +117,6 @@ class StateLoader(Mongo):
         print(print_green('Hub history updated successfully on path ') + str(build_hist_path))
 
         self.update_history_on_db(**history)
-        print(print_green('Hub history updated successfully on database'))
 
     @staticmethod
     def update_hub_badge(history):
