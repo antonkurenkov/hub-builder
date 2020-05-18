@@ -108,10 +108,11 @@ class Target:
             self.test_image(full_image_name)
         if push:
             self.push_image_readme()
-
-        self.pull_image(full_image_name)
-        tmp = subprocess.check_output(['docker', 'inspect', full_image_name]).strip().decode()
-        docker_inspect_output = json.loads(tmp)[0]
+            self.pull_image(full_image_name)
+            tmp = subprocess.check_output(['docker', 'inspect', full_image_name]).strip().decode()
+            docker_inspect_output = json.loads(tmp)[0]
+        else:
+            docker_inspect_output = {}
         self.update_target_readme()
         print(print_green(f'Successfully built {"and pushed " if push else ""}image ') + self.canonic_name + '\n')
         return docker_inspect_output
