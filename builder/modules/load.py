@@ -24,8 +24,7 @@ class Mongo:
             client = MongoClient(address)
             self.db = client['jina-test']
         else:
-            print(f'Incorrect credentials "{credentials}" for DB connection.')
-            exit(1)
+            print(f'Incorrect credentials "{credentials}" for DB connection. Will use status.json as history source.')
 
     def update_history_on_db(self, **kwargs):
         spec = {'_id': 1}
