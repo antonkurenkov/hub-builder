@@ -82,6 +82,7 @@ class StateLoader(Mongo):
         build_badge_prefix = r'<!-- START_BUILD_BADGE --><!-- END_BUILD_BADGE -->'
         with open(readme_path, 'r') as fp:
             tmp = fp.read()
+
             badge_str = '\n'.join([self.get_badge_md(k, v) for k, v in history['LastBuildStatus'].items()])
             h1 = f'## Last Build at: {datetime.datetime.now():%Y-%m-%d %H:%M:%S %Z}'
             h2 = '<summary>Reason</summary>'

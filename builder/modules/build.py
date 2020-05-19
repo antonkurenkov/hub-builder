@@ -97,7 +97,8 @@ class Builder:
 
     def update_history(self, history, target, image_map):
         history['Images'][target.canonic_name] = image_map
-        history['LastBuildTime'] = int(time.time())
+        history['LastBuildStatus'][target.canonic_name] = image_map['ImageStatus']
+        history['LastBuildTime'] = image_map['LastBuildTime']
         history['LastBuildReason'] = self.args.reason or self.args.update_strategy or 'test'
 
     def get_targets(self, history, get_all):
