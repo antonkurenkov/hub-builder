@@ -2,7 +2,6 @@ import os
 import time
 import subprocess
 
-from enum import IntEnum
 from pathlib import Path
 from ruamel.yaml import YAML
 
