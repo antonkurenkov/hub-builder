@@ -90,7 +90,7 @@ class Builder:
             'ImageName': target.canonic_name,
             'ImageStatus': status,
             'LastBuildTime': now,
-            'Inspect': output or image['Inspect'],
+            'Inspect': output or image.get('Inspect'),
             'ImageBuilds': build_log
         }
         self.update_history(history, target, image_map)
