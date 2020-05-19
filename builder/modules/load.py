@@ -119,6 +119,7 @@ class StateLoader(Mongo):
 
     @staticmethod
     def update_status_json(history):
+        history.pop('_id')
         builder_revision = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
         history.update({'BuilderRevision': builder_revision})
         with open(status_path, 'w') as fp:
