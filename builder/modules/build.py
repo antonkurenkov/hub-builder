@@ -71,25 +71,33 @@ class Builder:
 
     def build_single(self, target, history):
         output = None
-        status = 'fail'
+        status = False
         try:
             validator = Validator(target)
             try:
                 output = target.build_image(push=self.args.push, test=self.args.test)
-                status = 'success'
+                status = True
             except Exception as e:
                 print(print_red(e) + f' while building {target.canonic_name}')
         except Exception as e:
             print(print_red(e) + f' while validating {target.canonic_name}')
 
+        now = str(int(time.time()))
+        image = history.get('Images', {}).get(target.canonic_name, {})
+        build_log = image.get('ImageBuilds', {})
+        build_log.update({now: status})
         image_map = {
-            'Status': bool(output),
-            'LastBuildTime': int(time.time()),
-            'Inspect': output
+            'ImageName': target.canonic_name,
+            'ImageStatus': status,
+            'LastBuildTime': now,
+            'Inspect': output,
+            'ImageBuilds': build_log
         }
+        self.update_history(history, target, image_map)
+
+    def update_history(self, history, target, image_map):
         history['Images'][target.canonic_name] = image_map
-        history['LastBuildTime'][target.canonic_name] = int(time.time())
-        history['LastBuildStatus'][target.canonic_name] = status
+        history['LastBuildTime'] = int(time.time())
         history['LastBuildReason'] = self.args.reason or self.args.update_strategy or 'test'
 
     def get_targets(self, history, get_all):
@@ -98,10 +106,10 @@ class Builder:
 
         for file_path in hub_files:
             target = os.path.dirname(os.path.abspath(file_path))
-            canonic_name = os.path.relpath(target).replace('/', '.').strip('.')
+            canonic_name = Target.get_canonic_name(target)
 
             modified_time = self.get_modified_time(file_path)
-            last_build_timestamp = history.get('LastBuildTime', {}).get(canonic_name, 0)
+            last_build_timestamp = int(history['Images'].get(canonic_name, {}).get('LastBuildTime', 0))
             is_target_to_be_added = False
             if builder_updated_timestamp > last_build_timestamp or modified_time > last_build_timestamp:
                 is_target_to_be_added = True

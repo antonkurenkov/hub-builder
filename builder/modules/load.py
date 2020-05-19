@@ -12,7 +12,8 @@ from builder.color_print import *
 yaml = YAML()
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-build_hist_path = os.path.join(root_dir, 'api', 'hub', 'build.json')
+build_path = os.path.join(root_dir, 'api', 'hub', 'build.json')
+status_path = os.path.join(root_dir, 'api', 'hub', 'status.json')
 
 
 class Mongo:
@@ -57,27 +58,23 @@ class StateLoader(Mongo):
         empty_history = {'Images': {}, 'LastBuildTime': {}, 'LastBuildStatus': {}, 'LastBuildReason': ''}
         history = remote_history or local_history or empty_history
         if history == empty_history:
-            print(print_red('\nCan\'t load build history from database or ') + build_hist_path)
+            print(print_red('\nCan\'t load build history from database or local'))
         return history
 
     @staticmethod
     def get_local_history():
-        if os.path.isfile(build_hist_path):
-            with open(build_hist_path, 'r') as fp:
-                history = json.load(fp)
+        if os.path.isfile(build_path) and os.path.isfile(status_path):
+            with open(status_path, 'r') as sp:
+                history = json.load(sp)
+            with open(build_path, 'r') as bp:
+                history['Images'] = json.load(bp)
             return history
-
-    @staticmethod
-    def get_maps(history):
-        image_map = history.get('Images', {})
-        status_map = history.get('LastBuildStatus', {})
-        last_build_time = history.get('LastBuildTime', {})
-        return image_map, status_map, last_build_time
 
     def update_total_history(self, history):
         self.update_readme(history)
         self.update_hub_badge(history)
-        self.update_json_track(history)
+        self.update_history_on_db(**history)
+        self.update_api(history)
 
     def update_readme(self, history):
         readme_path = os.path.join(root_dir, 'status', 'README.md')
@@ -99,9 +96,9 @@ class StateLoader(Mongo):
     @staticmethod
     def get_badge_md(img_name, status):
         safe_url_name = img_name.replace('-', '--').replace('_', '__').replace(' ', '_')
-        if status == 'success':
+        if status is True:
             success_tag = 'success-success'
-        elif status == 'fail':
+        elif status is False:
             success_tag = 'fail-critical'
         else:
             success_tag = 'pending-yellow'
@@ -109,14 +106,23 @@ class StateLoader(Mongo):
                f'{success_tag}?style=flat-square)]' \
                f'(https://hub.docker.com/repository/docker/jinaai/{img_name})'
 
-    def update_json_track(self, history):
+    def update_api(self, history):
+        self.update_build_json(history)
+        self.update_status_json(history)
+
+    @staticmethod
+    def update_build_json(history):
+        with open(build_path, 'w') as fp:
+            json.dump(history.pop('Images'), fp)
+        print(print_green(f'Build api updated on path ') + str(build_path))
+
+    @staticmethod
+    def update_status_json(history):
         builder_revision = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
         history.update({'BuilderRevision': builder_revision})
-        with open(build_hist_path, 'w') as fp:
+        with open(status_path, 'w') as fp:
             json.dump(history, fp)
-        print(print_green('Hub history updated successfully on path ') + str(build_hist_path))
-
-        self.update_history_on_db(**history)
+        print(print_green('Status api updated on path ') + str(status_path))
 
     @staticmethod
     def update_hub_badge(history):
