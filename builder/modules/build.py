@@ -172,3 +172,4 @@ class Builder:
                 return True
         except KeyError as e:
             print(print_red(f'{e} is not valid strategy for ') + target.canonic_name)
+
