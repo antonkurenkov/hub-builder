@@ -104,7 +104,7 @@ jobs:
           cd api
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
-          git add hub/build.json
+          git add hub/build.json hub/status.json
           git commit -qm "chore: update build history" -a
           git show '--stat-count=10' HEAD
           git config --list
