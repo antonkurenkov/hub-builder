@@ -82,10 +82,10 @@ class Builder:
         except Exception as e:
             print(print_red(e) + f' while validating {target.canonic_name}')
 
-        now = str(int(time.time()))
+        now = int(time.time())
         image = history.get('Images', {}).get(target.canonic_name, {})
         build_log = image.get('ImageBuilds', {})
-        build_log.update({now: status})
+        build_log.update({str(now): status})
         image_map = {
             'ImageName': target.canonic_name,
             'ImageStatus': status,
