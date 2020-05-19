@@ -15,7 +15,7 @@ class Target:
 
     def __init__(self, path):
         self.path = path
-        self.canonic_name = os.path.relpath(path).replace('/', '.').strip('.')
+        self.canonic_name = self.get_canonic_name(path)
         self.manifest_path = os.path.join(path, 'manifest.yml')
         self.dockerfile_path = os.path.join(path, 'Dockerfile')
         self.readme_path = os.path.join(path, 'README.md')
@@ -51,6 +51,10 @@ class Target:
             raise ValueError(f"{required - keys} required!")
         elif len(keys - allowed) > 0:
             raise ValueError(f"{keys - allowed} are not allowed!")
+
+    @staticmethod
+    def get_canonic_name(target):
+        return 'hub.' + os.path.relpath(target).replace('/', '.').strip('.').strip('hub.')
 
     def check_image_canonic_name(self):
         image_tag_regex = r'^hub.[a-zA-Z_$][a-zA-Z_\s\-\.$0-9]*$'

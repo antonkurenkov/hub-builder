@@ -136,10 +136,6 @@ class Builder:
         print(print_green('Last builder update: ') + self.get_hr_time(last_builder_update_timestamp))
         return last_builder_update_timestamp
 
-    @staticmethod
-    def get_canonic_name(target):
-        return os.path.relpath(target).replace('/', '.').strip('.')
-
     def check_update_strategy(self, target):
 
         event_map = {
@@ -163,7 +159,7 @@ class Builder:
         try:
             event_level = event_map[current_strategy]
             update_level = strategy_map[target_strategy]
-            if event_level >= update_level:
+            if event_level <= update_level:
                 return True
         except KeyError as e:
             print(print_red(f'{e} is not valid strategy for ') + target.canonic_name)
