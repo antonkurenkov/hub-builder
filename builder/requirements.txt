@@ -1,5 +1,5 @@
 ruamel.yaml
-jina
+jina[devel]
 requests
 pymongo
 dnspython
