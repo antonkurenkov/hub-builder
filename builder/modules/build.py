@@ -72,6 +72,7 @@ class Builder:
     def build_single(self, target, history):
         output = None
         status = False
+        start = int(time.time())
         try:
             validator = Validator(target)
             try:
@@ -82,18 +83,51 @@ class Builder:
         except Exception as e:
             print(print_red(e) + f' while validating {target.canonic_name}')
 
-        now = int(time.time())
+        finish = int(time.time())
+        duration = finish - start
         image = history.get('Images', {}).get(target.canonic_name, {})
         build_log = image.get('ImageBuilds', {})
-        build_log.update({str(now): status})
+        build_log.update({str(finish): status})
         image_map = {
             'ImageName': target.canonic_name,
             'ImageStatus': status,
-            'LastBuildTime': now,
+            'LastBuildTime': finish,
+            'LastBuildDuration': duration,
             'Inspect': output or image.get('Inspect'),
             'ImageBuilds': build_log
         }
+        fields_from_target_manifest = self.image_related_keys(target.manifest)
+        fields_from_repo_manifest = self.common_keys()
+        image_map['Manifest'] = {}
+        image_map['Manifest'].update(**fields_from_target_manifest)
+        image_map['Manifest'].update(**fields_from_repo_manifest)
         self.update_history(history, target, image_map)
+
+    @staticmethod
+    def image_related_keys(manifest):
+        return {
+            'name': manifest.get('name'),
+            'revision': manifest.get('revision'),
+            'source': manifest.get('source'),
+        }
+
+    @staticmethod
+    def common_keys():
+        builder_manifest_path = os.path.join(root_dir, 'builder', 'manifest.yml')
+        with open(builder_manifest_path) as yml:
+            source_manifest = yaml.load(yml)
+            fields = {
+                'url': source_manifest.get('url', 'https://jina.ai'),
+                'vendor': source_manifest.get('vendor', 'Jina AI Limited'),
+                'version': source_manifest.get('version'),
+                'author': source_manifest.get('author', 'dev-team@jina.ai'),
+                'description': source_manifest.get('description', 'Jina is the cloud-native neural search solution '
+                                                                  'powered by state-of-the-art AI and '
+                                                                  'deep learning technology'),
+                'docs': source_manifest.get('docs', 'https://docs.jina.ai'),
+                'license': source_manifest.get('license', 'Apache 2.0')
+            }
+        return fields
 
     def update_history(self, history, target, image_map):
         history['Images'][target.canonic_name] = image_map
