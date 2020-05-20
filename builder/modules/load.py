@@ -114,10 +114,11 @@ class StateLoader(Mongo):
     def update_build_json(self, history):
         manifest_fields = self.load_related_fields()
         history.update(**manifest_fields)
+        images = history.pop('Images')
         with open(build_path, 'w') as fp:
-            json.dump(history.pop('Images'), fp)
+            json.dump(images, fp)
         with open(build_path.strip('.json'), 'w') as fp:
-            json.dump(history.pop('Images'), fp)
+            json.dump(images, fp)
         print(print_green(f'Build api updated on path ') + str(build_path))
 
     def update_status_json(self, history):
