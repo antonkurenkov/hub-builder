@@ -54,7 +54,9 @@ class Target:
 
     @staticmethod
     def get_canonic_name(target):
-        return 'hub.' + os.path.relpath(target).replace('/', '.').strip('.').strip('hub.')
+        tmp = os.path.relpath(target).replace('/', '.').strip('.')
+        name = re.sub(r'^[hub.]*', '', tmp)
+        return 'hub.' + name
 
     def check_image_canonic_name(self):
         image_tag_regex = r'^hub.[a-zA-Z_$][a-zA-Z_\s\-\.$0-9]*$'
