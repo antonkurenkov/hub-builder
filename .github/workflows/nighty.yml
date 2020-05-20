@@ -7,7 +7,7 @@ on:
 jobs:
 
   check-updated-files:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       updated: ${{ steps.updatestatus.outputs.updated }}
     steps:
@@ -50,7 +50,7 @@ jobs:
   build-updated-files:
     needs: check-updated-files
     if: "needs.check-updated-files.outputs.updated == 'true'"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
