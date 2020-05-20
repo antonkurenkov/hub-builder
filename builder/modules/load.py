@@ -111,20 +111,47 @@ class StateLoader(Mongo):
         self.update_build_json(history)
         self.update_status_json(history)
 
-    @staticmethod
-    def update_build_json(history):
+    def update_build_json(self, history):
+        manifest_fields = self.load_related_fields()
+        history.update(**manifest_fields)
         with open(build_path, 'w') as fp:
+            json.dump(history.pop('Images'), fp)
+        with open(build_path.strip('.json'), 'w') as fp:
             json.dump(history.pop('Images'), fp)
         print(print_green(f'Build api updated on path ') + str(build_path))
 
-    @staticmethod
-    def update_status_json(history):
-        history.pop('_id')
+    def update_status_json(self, history):
         builder_revision = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
         history.update({'BuilderRevision': builder_revision})
+        manifest_fields = self.load_related_fields()
+        history.update(**manifest_fields)
+        history.pop('_id')
         with open(status_path, 'w') as fp:
             json.dump(history, fp)
+        with open(status_path.strip('.json'), 'w') as fp:
+            json.dump(history, fp)
         print(print_green('Status api updated on path ') + str(status_path))
+
+    @staticmethod
+    def load_related_fields():
+        builder_manifest_path = os.path.join(root_dir, 'builder', 'manifest.yml')
+        with open(builder_manifest_path) as yml:
+            source_manifest = yaml.load(yml)
+            fields = {
+                'name': source_manifest.get('name', 'Hub builder'),
+                'revision': source_manifest.get('revision'),
+                'source': source_manifest.get('source'),
+                'url': source_manifest.get('url', 'https://jina.ai'),
+                'vendor': source_manifest.get('vendor', 'Jina AI Limited'),
+                'version': source_manifest.get('version'),
+                'author': source_manifest.get('author', 'dev-team@jina.ai'),
+                'description': source_manifest.get('description', 'Jina is the cloud-native neural search solution '
+                                                                  'powered by state-of-the-art AI and '
+                                                                  'deep learning technology'),
+                'docs': source_manifest.get('docs', 'https://docs.jina.ai'),
+                'license': source_manifest.get('license', 'Apache 2.0')
+            }
+        return fields
 
     @staticmethod
     def update_hub_badge(history):
