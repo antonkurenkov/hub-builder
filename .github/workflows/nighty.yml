@@ -98,7 +98,7 @@ jobs:
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
-          python app.py --reason "nightly build" --bleach-first --update-strategy=nightly
+          python app.py --reason "nightly build" --bleach-first --update-strategy=nightly --push
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
@@ -127,7 +127,7 @@ jobs:
           cd api
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
-          git add hub/build.json hub/status.json
+          git add hub/build.json hub/build hub/status.json hub/status
           git commit -qm "chore: update build history" -a
           git show '--stat-count=10' HEAD
           git config --list
