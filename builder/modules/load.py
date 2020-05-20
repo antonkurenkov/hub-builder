@@ -12,8 +12,8 @@ from builder.color_print import *
 yaml = YAML()
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-build_path = os.path.join(root_dir, 'api', 'hub', 'build.json')
-status_path = os.path.join(root_dir, 'api', 'hub', 'status.json')
+build_path = os.path.join(root_dir, 'api', 'hub', 'build')
+status_path = os.path.join(root_dir, 'api', 'hub', 'status')
 
 
 class Mongo:
@@ -117,7 +117,7 @@ class StateLoader(Mongo):
         images = history.pop('Images')
         with open(build_path, 'w') as fp:
             json.dump(images, fp)
-        with open(build_path.strip('.json'), 'w') as fp:
+        with open(build_path + '.json', 'w') as fp:
             json.dump(images, fp)
         print(print_green(f'Build api updated on path ') + str(build_path))
 
@@ -129,7 +129,7 @@ class StateLoader(Mongo):
         history.pop('_id')
         with open(status_path, 'w') as fp:
             json.dump(history, fp)
-        with open(status_path.strip('.json'), 'w') as fp:
+        with open(status_path + '.json', 'w') as fp:
             json.dump(history, fp)
         print(print_green('Status api updated on path ') + str(status_path))
 

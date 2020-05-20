@@ -99,7 +99,7 @@ jobs:
           force: true
           directory: status/
 
-      - name: commit build history
+      - name: commit api endpoints
         run: |
           cd api
           git config --local user.email "dev-bot@jina.ai"
@@ -109,7 +109,7 @@ jobs:
           git show '--stat-count=10' HEAD
           git config --list
 
-      - name: push build history
+      - name: push api endpoints
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.JINA_DEV_BOT }}
