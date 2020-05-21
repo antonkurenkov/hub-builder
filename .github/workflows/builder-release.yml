@@ -16,10 +16,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: jina-ai/hub-builder
-          path: .
+          path: builder
           token: ${{ secrets.JINA_DEV_BOT }}
 
-      - run: git fetch --prune --unshallow
+#      - run: git fetch --prune --unshallow
+      - run: cd builder
 
       - name: get modified files
         id: getmodified
