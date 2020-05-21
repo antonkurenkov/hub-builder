@@ -14,18 +14,10 @@ jobs:
       modified: ${{ steps.getmodified.outputs.modified }}
     steps:
       - uses: actions/checkout@v2
-        with:
-          repository: jina-ai/hub-builder
-          path: builder
-          token: ${{ secrets.JINA_DEV_BOT }}
-
-#      - run: git fetch --prune --unshallow
-#      - run: cd builder
-
+      - run: git fetch --prune --unshallow
       - name: get modified files
         id: getmodified
         run: |
-          cd builder
           MODIFIED=$(git log -1 --name-only --oneline | tail -n+2)
           for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then echo "::set-output name=modified::true"; fi; done
         env:
