@@ -14,7 +14,8 @@ jobs:
       modified: ${{ steps.getmodified.outputs.modified }}
     steps:
       - uses: actions/checkout@v2
-      - run: git remote add origin https://github.com/jina-ai/hub-builder.git
+#      - run: git fetch --prune --unshallow
+      - run: git remote add origin https://github.com/jina-ai/hub-builder
       - name: get modified files
         id: getmodified
         run: |
