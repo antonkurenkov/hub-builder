@@ -13,14 +13,13 @@ jobs:
     outputs:
       modified: ${{ steps.getmodified.outputs.modified }}
     steps:
-      - uses: actions/checkout@v2
-        with:
-          repository: jina-ai/hub-builder
-          path: builder
-          token: ${{ secrets.JINA_DEV_BOT }}
-      - run: cd builder && git fetch --prune --unshallow
+#      - uses: actions/checkout@v2
+#        with:
+#          repository: jina-ai/hub-builder
+#          path: builder
+#          token: ${{ secrets.JINA_DEV_BOT }}
 #      - run: cd builder && git fetch --prune --unshallow
-#      - run: git remote add origin https://github.com/jina-ai/hub-builder
+      - run: git clone https://github.com/jina-ai/hub-builder ./builder && cd builder
       - name: get modified files
         id: getmodified
         run: |
