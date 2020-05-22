@@ -76,29 +76,13 @@ Flags:
 - [ ] `--check-targets`: to check if some images-related files were modified but with no rebuild
 - [ ] `--update-strategy`: is a level of current rebuild importance. If specified to `force`, rebuilds all images. More detailed description regarding update policy [is here.](https://github.com/jina-ai/jina-hub#remarks-on-the-update-policy)
 
-If you wish to track build history, you should add database connection on app calling. 
+If you wish your Mongo database to track build history, you should add database connection on app call. 
 Execute `MONGODB_CREDENTIALS={user:password} app.py ...` instead of using `app.py ...`.
 
 When you start the app, you may lines like this:
 `Found target file /Users/user/builder/hub/hub/executors/encoders/image/torchvision-mobilenet_v2/Dockerfile`
 This means the file was modified from it's last git-committed state. 
 All images having proper `update` field specified in their `manifest.yml` will be updated according to selected `--update-strategy` on the `app.py` run. More detailed description regarding update policy [is here.](https://github.com/jina-ai/jina-hub#remarks-on-the-update-policy)
-
-
-### Why it fails?
-
-Here is the checklist to help you locate the problem.
-
-- [ ] Correct image is missing. 
-- [ ] The required field in `manifest.yml` is missing.
-- [ ] Some field value is not in the correct format, not passing the sanity check.
-- [ ] The pod bundle is badly placed.
-- [ ] Time of building + testing is longer than 10 minutes. 
-- [ ] The build is successful but it fails on [three basic usage tests](#use-your-pod-image).
-
-Click "Details" and checkout the log of the CICD pipeline:
-
-![](.github/.README_images/5f4181e9.png)
 
 ## Contributing
 
