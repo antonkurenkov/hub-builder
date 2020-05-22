@@ -11,7 +11,7 @@
        alt="tweet button" title="👍Share Jina with your friends on Twitter"></img>
 </a>
 
-Jina Hub is an open-registry for hosting immutable Jina components via container images. It enables users to ship, and exchange their best-practice across various Jina search applications.
+Jina Hub Builder is an app for building user generated pod images, testing and pushing them to docker hub.
 
 ![](.github/.README_images/hub-demo.gif)
 
@@ -70,7 +70,7 @@ Flags:
 
 - [ ] `--bleach-first`: to remove all existing docker instances before build
 - [ ] `--target`: is a path to single image to be builded
-- [ ] `--push`: to push successfully builded image to docker hub. Credentials as `DOCKERHUB_DEVBOT_USER` and `DOCKERHUB_DEVBOT_USER` are required.
+- [ ] `--push`: to push successfully builded image to docker hub. Credentials as `DOCKERHUB_DEVBOT_USER` and `DOCKERHUB_DEVBOT_USER` as env variables are required.
 - [ ] `--test`: to test images with `docker run`, `jina pod`, and Jina Flow.
 - [ ] `--reason`: to set a reason for current build (would be added to status readme)
 - [ ] `--check-targets`: to check if some images-related files were modified but with no rebuild
@@ -83,6 +83,33 @@ When you start the app, you may lines like this:
 `Found target file /Users/user/builder/hub/hub/executors/encoders/image/torchvision-mobilenet_v2/Dockerfile`
 This means the file was modified from it's last git-committed state. 
 All images having proper `update` field specified in their `manifest.yml` will be updated according to selected `--update-strategy` on the `app.py` run. More detailed description regarding update policy [is here.](https://github.com/jina-ai/jina-hub#remarks-on-the-update-policy)
+
+## Outputs
+
+When the image build is finished, you will see message like
+```
+Successfully built image hub.executors.encoders.nlp.transformers-pytorch
+```
+This means you image is successfully built. Otherwise, you see an error description in your terminal output.
+If you have `--push` option on application run, all successfully built images will be pushed to docker hub.
+
+When the app run is finished (only if you built multiple targets and did not specified `--target` flag), you will see lines like
+```
+Hub readme updated successfully on path /Users/user/hub-builder/status/README.md
+Hub badge updated successfully on path /Users/user/hub-builder/status/hub-stat.svg
+```
+This means the app has just updated status Readme.md and hub badge.
+
+If you run the app with database connection (with `MONGODB_CREDENTIALS` specified), you will see a message:
+```
+Hub history updated successfully on database
+```
+The next lines:
+```
+Package api updated on path /Users/user/hub-builder/api/hub/package
+Status api updated on path /Users/user/hub-builder/api/hub/status
+```
+mean that the app produced fresh json tracks which could be used for status and building state analysis. See [here](https://github.com/jina-ai/api#jina-hub-status) for more details.
 
 ## Contributing
 
