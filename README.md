@@ -43,13 +43,13 @@ Jina Hub Builder is an app for building user generated pod images, testing and p
 To build images with this builder app, first you have to install some required dependencies and repos.
 
 ```bash
-git clone https://github.com/jina-ai/hub-builder ./builder // installing the builder core
-git clone https://github.com/jina-ai/jina-hub ./builder/hub // installing hub containing current stable images
-git clone https://github.com/jina-ai/jina ./builder/src/jina // installing jina core
-git clone https://github.com/jina-ai/hub-status ./builder/status // installing status path
-cd builder
-pip install -r builder/requirements.txt
-pip install jina[devel]
+➜ git clone https://github.com/jina-ai/hub-builder ./builder // installing the builder core
+➜ git clone https://github.com/jina-ai/jina-hub ./builder/hub // installing hub containing current stable images
+➜ git clone https://github.com/jina-ai/jina ./builder/src/jina // installing jina core
+➜ git clone https://github.com/jina-ai/hub-status ./builder/status // installing status path
+➜ cd builder
+➜ pip install -r builder/requirements.txt
+➜ pip install jina[devel]
 ```
 
 ## Building images
@@ -57,13 +57,13 @@ pip install jina[devel]
 For building single image:
 
 ```bash
-app.py --target=hub/examples/mwu_encoder
+➜ python app.py --target=hub/examples/mwu_encoder
 ```
 
 For building all images:
 
 ```bash
-app.py --update-strategy=force
+➜ python app.py --update-strategy=force
 ```
 
 Flags:
