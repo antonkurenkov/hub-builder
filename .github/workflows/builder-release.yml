@@ -19,7 +19,8 @@ jobs:
 #          path: builder
 #          token: ${{ secrets.JINA_DEV_BOT }}
 #      - run: cd builder && git fetch --prune --unshallow
-      - run: git clone https://github.com/jina-ai/hub-builder ./builder && cd builder
+#      - run: git clone https://github.com/jina-ai/hub-builder ./builder && cd builder
+      - run: cd builder
       - name: get modified files
         id: getmodified
         run: |
