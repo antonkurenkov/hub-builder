@@ -9,7 +9,7 @@ jobs:
 
   check-modified-triggers:
     if: "!startsWith(github.event.head_commit.message, 'chore')"
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       modified: ${{ steps.getmodified.outputs.modified }}
     steps:
@@ -18,7 +18,7 @@ jobs:
 #          repository: jina-ai/hub-builder
 #          path: builder
 #          token: ${{ secrets.JINA_DEV_BOT }}
-      - run: cd builder && git fetch --prune --unshallow
+      - run: git fetch --prune --unshallow
 #      - run: git clone https://github.com/jina-ai/hub-builder ./builder && cd builder
 #      - run: cd builder
       - name: get modified files
