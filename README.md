@@ -1,4 +1,4 @@
-# Jina Hub (beta)
+# Jina Hub Builder (beta)
 
 [![CI](https://github.com/jina-ai/hub-builder/workflows/builder-release/badge.svg?branch=master)](https://github.com/jina-ai/hub-builder/actions?query=workflow%3Aon-release)
 [![CD](https://github.com/jina-ai/hub-builder/workflows/nightly/badge.svg?branch=master)](https://github.com/jina-ai/hub-builder/actions?query=workflow%3Anightly)
@@ -38,14 +38,21 @@ Jina Hub is an open-registry for hosting immutable Jina components via container
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-### Installing dependencies
+## Installing dependencies
+
+To build images with this builder app, first you have to install some required dependencies and repos.
 
 ```bash
+git clone https://github.com/jina-ai/hub-builder ./builder // installing the builder core
+git clone https://github.com/jina-ai/jina-hub ./builder/hub // installing hub containing current stable images
+git clone https://github.com/jina-ai/jina ./builder/src/jina // installing jina core
+git clone https://github.com/jina-ai/hub-status ./builder/status // installing status path
+cd builder
 pip install -r builder/requirements.txt
 pip install jina[devel]
 ```
 
-### Building images
+## Building images
 
 For building single image:
 
@@ -61,22 +68,28 @@ app.py --update-strategy=force
 
 Flags:
 
-`--bleach-first`: to remove all existing docker instances before build
-`--target=`: is a path to single image to be builded
-`--push`: to push successfully builded image to docker hub. Credentials as `DOCKERHUB_DEVBOT_USER` and `DOCKERHUB_DEVBOT_USER` are required.
-`--test`: to test images with `docker run`, `jina pod`, and Jina Flow.
+- [ ] `--bleach-first`: to remove all existing docker instances before build
+- [ ] `--target`: is a path to single image to be builded
+- [ ] `--push`: to push successfully builded image to docker hub. Credentials as `DOCKERHUB_DEVBOT_USER` and `DOCKERHUB_DEVBOT_USER` are required.
+- [ ] `--test`: to test images with `docker run`, `jina pod`, and Jina Flow.
+- [ ] `--reason`: to set a reason for current build (would be added to status readme)
+- [ ] `--check-targets`: to check if some images-related files were modified but with no rebuild
+- [ ] `--update-strategy`: is a level of current rebuild importance. If specified to `force`, rebuilds all images. More detailed description regarding update policy [is here.](https://github.com/jina-ai/jina-hub#remarks-on-the-update-policy)
+
+If you wish to track build history, you should add database connection on app calling. 
+Execute `MONGODB_CREDENTIALS={user:password} app.py ...` instead of using `app.py ...`.
+
+When you start the app, you may lines like this:
+`Found target file /Users/user/builder/hub/hub/executors/encoders/image/torchvision-mobilenet_v2/Dockerfile`
+This means the file was modified from it's last git-committed state. 
+All images having proper `update` field specified in their `manifest.yml` will be updated according to selected `--update-strategy` on the `app.py` run. More detailed description regarding update policy [is here.](https://github.com/jina-ai/jina-hub#remarks-on-the-update-policy)
 
 
-
-
-
-
-
-### Why My Upload Fails on the CICD?
+### Why it fails?
 
 Here is the checklist to help you locate the problem.
 
-- [ ] Required file `Dockerfile`, `manifest.yml`, `README.md` is missing. 
+- [ ] Correct image is missing. 
 - [ ] The required field in `manifest.yml` is missing.
 - [ ] Some field value is not in the correct format, not passing the sanity check.
 - [ ] The pod bundle is badly placed.
