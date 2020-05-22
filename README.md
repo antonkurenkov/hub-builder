@@ -17,25 +17,6 @@ Jina Hub Builder is an app for building user generated pod images, testing and p
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-
-- [Build Your Pod into a Docker Image](#build-your-pod-into-a-docker-image)
-  - [Goal](#goal)
-  - [Why?](#why)
-  - [What Should be in the Image?](#what-should-be-in-the-image)
-  - [Step-by-Step Example](#step-by-step-example)
-- [Use Your Pod Image](#use-your-pod-image)
-  - [Use the Pod image via Docker CLI](#use-the-pod-image-via-docker-cli)
-  - [Use the Pod image via Jina CLI](#use-the-pod-image-via-jina-cli)
-  - [Use the Pod image via Flow API](#use-the-pod-image-via-flow-api)
-- [Publish Your Pod Image to Jina Hub](#publish-your-pod-image-to-jina-hub)
-  - [What Files Need to be Uploaded?](#what-files-need-to-be-uploaded)
-  - [Schema of `manifest.yml`](#schema-of-manifestyml)
-  - [Steps to Publish Your Image](#steps-to-publish-your-image)
-  - [Why My Upload Fails on the CICD?](#why-my-upload-fails-on-the-cicd)
-- [Contributing](#contributing)
-- [License](#license)
-
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Installing dependencies
