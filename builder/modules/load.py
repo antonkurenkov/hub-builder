@@ -48,9 +48,8 @@ class Mongo:
 
 class StateLoader(Mongo):
 
-    def __init__(self, error_on_empty=False):
+    def __init__(self):
         Mongo.__init__(self)
-        self.error_on_empty = error_on_empty
 
     def get_history(self):
         local_history = self.get_local_history()
