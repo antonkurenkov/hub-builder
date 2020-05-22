@@ -39,34 +39,34 @@ jobs:
           repository: jina-ai/hub-builder
           path: builder
           token: ${{ secrets.JINA_DEV_BOT }}
-      - run: git fetch --prune --unshallow
+      - run: cd builder && git fetch --prune --unshallow
 
       - name: pull status repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/hub-status
-          path: status
+          path: builder/status
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/api repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/api
-          path: api
+          path: builder/api
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/jina-hub repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
-          path: hub
+          path: builder/hub
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/jina repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/jina
-          path: src/jina
+          path: builder/src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - uses: actions/setup-python@v1
@@ -81,6 +81,7 @@ jobs:
 
       - name: build all images
         run: |
+          cd builder
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip install -r builder/requirements.txt
@@ -93,7 +94,7 @@ jobs:
 
       - name: commit new hub readme and badge
         run: |
-          cd status
+          cd builder/status
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
           git add README.md hub-stat.svg
@@ -111,7 +112,7 @@ jobs:
 
       - name: commit api endpoints
         run: |
-          cd api/hub
+          cd builder/api/hub
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
           git add package.json package status.json status
