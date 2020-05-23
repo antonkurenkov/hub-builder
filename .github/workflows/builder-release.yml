@@ -130,5 +130,5 @@ jobs:
           FOLDING: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TOC_TITLE: ''
-          TARGET_PATHS: 'README.md'
+          TARGET_PATHS: 'builder/README.md'
           COMMIT_MESSAGE: 'chore(docs): update TOC'
