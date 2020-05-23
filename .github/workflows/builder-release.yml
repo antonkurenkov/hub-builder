@@ -9,7 +9,7 @@ jobs:
 
   check-modified-triggers:
     if: "!startsWith(github.event.head_commit.message, 'chore')"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       modified: ${{ steps.getmodified.outputs.modified }}
     steps:
@@ -32,7 +32,7 @@ jobs:
   build-update:
     needs: check-modified-triggers
     if: "needs.check-modified-triggers.outputs.modified == 'true'"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
         with:
