@@ -63,9 +63,9 @@ jobs:
           path: builder/src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
+#      - uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.7
 
       - name: set up Docker Buildx
         id: buildx
