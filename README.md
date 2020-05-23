@@ -16,8 +16,18 @@ Jina Hub Builder is an app for building user generated pod images, testing and p
 ![](.github/.README_images/hub-builder-demo.gif)
 
 
-<!-- START doctoc -->
-<!-- END doctoc -->
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Installing dependencies](#installing-dependencies)
+- [Building images](#building-images)
+  - [Flags:](#flags)
+- [Outputs](#outputs)
+- [Contributing](#contributing)
+- [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
 ## Installing dependencies
