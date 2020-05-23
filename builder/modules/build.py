@@ -59,11 +59,13 @@ class Builder:
     @staticmethod
     def clean_docker():
         print(print_green('Removing all existing docker instances'))
-        for k in ['df -h',
-                  'docker stop $(docker ps -aq)',
-                  'docker rm $(docker ps -aq)',
-                  'docker rmi -f $(docker image ls -aq)',
-                  'df -h']:
+        for k in [
+            'df -h',
+            'docker stop $(docker ps -aq)',
+            'docker rm $(docker ps -aq)',
+            'docker rmi -f $(docker image ls -aq)',
+            'docker volume prune -f', 'df -h'
+        ]:
             try:
                 subprocess.check_call(k, shell=True)
             except subprocess.CalledProcessError:
