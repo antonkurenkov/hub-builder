@@ -44,8 +44,8 @@ jobs:
       - name: check if there are images to build
         id: updatestatus
         run: |
-          pip install -r builder/requirements.txt
-          python app.py --check-targets && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
+          pip3 install -r builder/requirements.txt
+          python3.7 app.py --check-targets && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
 
@@ -101,8 +101,8 @@ jobs:
         run: |
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
-          pip install -r builder/requirements.txt
-          python app.py --reason "nightly build" --bleach-first --update-strategy=nightly
+          pip3 install -r builder/requirements.txt
+          python3.7 app.py --reason "nightly build" --bleach-first --update-strategy=nightly
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
