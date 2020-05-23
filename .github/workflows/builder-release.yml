@@ -63,7 +63,6 @@ jobs:
           path: builder/src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
-# # excluded on self-hosted runner
 #      - uses: actions/setup-python@v2
 #        with:
 #          python-version: 3.7
@@ -79,8 +78,8 @@ jobs:
           cd builder
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
-          pip3 install -r builder/requirements.txt
-          python3.7 app.py --reason "builder update" --bleach-first --update-strategy=on-release
+          pip install -r builder/requirements.txt
+          python app.py --reason "builder update" --bleach-first --update-strategy=on-release
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
