@@ -104,7 +104,7 @@ jobs:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/hub-status
           force: true
-          directory: status/
+          directory: builder/status/
 
       - name: commit api endpoints
         run: |
@@ -122,7 +122,7 @@ jobs:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/api
           force: true
-          directory: api/
+          directory: builder/api/
 
       - uses: technote-space/toc-generator@v2
         with:

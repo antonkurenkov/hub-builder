@@ -35,9 +35,11 @@ jobs:
           path: hub
           token: ${{ secrets.JINA_DEV_BOT }}
 
-      - uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
+      - uses: actions/setup-python@v2
+          with:
+            python-version: 3.7.7
+          env:
+            AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: check if there are images to build
         id: updatestatus
@@ -83,9 +85,11 @@ jobs:
           path: src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
-      - uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
+      - uses: actions/setup-python@v2
+          with:
+            python-version: 3.7.7
+          env:
+            AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: set up Docker Buildx
         id: buildx
@@ -124,10 +128,10 @@ jobs:
 
       - name: commit build history
         run: |
-          cd api
+          cd api/hub
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
-          git add hub/package.json hub/package hub/status.json hub/status
+          git add package.json package status.json status
           git commit -qm "chore: update build history" -a
           git show '--stat-count=10' HEAD
           git config --list
