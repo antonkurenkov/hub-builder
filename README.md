@@ -48,7 +48,7 @@ For building all images:
 ➜ python app.py --update-strategy=force
 ```
 
-Flags:
+### Flags:
 
 - [ ] `--bleach-first`: to remove all existing docker instances before build
 - [ ] `--target`: is a path to single image to be builded
