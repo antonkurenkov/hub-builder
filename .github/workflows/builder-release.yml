@@ -19,7 +19,12 @@ jobs:
         id: getmodified
         run: |
           MODIFIED=$(git log -1 --name-only --oneline | tail -n+2)
-          for FILEPATH in $MODIFIED; do if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]]; then echo "::set-output name=modified::true"; fi; done
+          for FILEPATH in $MODIFIED;
+          do
+            if [[ ${TRIGGERS[@]} =~ ${FILEPATH} ]];
+              then echo "::set-output name=modified::true";
+            fi;
+          done
         env:
           TRIGGERS: builder/modules/build.py builder/modules/target.py builder/modules/load.py builder/modules/valid.py
 
