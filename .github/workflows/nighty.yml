@@ -17,38 +17,50 @@ jobs:
       updated: ${{ steps.updatestatus.outputs.updated }}
     steps:
       - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow
+        with:
+          repository: jina-ai/hub-builder
+          path: builder
+          token: ${{ secrets.JINA_DEV_BOT }}
+      - run: cd builder && git fetch --prune --unshallow
 
-      - name: pull jina-ai/hub-status repo
+      - name: pull status repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/hub-status
-          path: status
+          path: builder/status
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/api repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/api
-          path: api
+          path: builder/api
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/jina-hub repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
-          path: hub
+          path: builder/hub
+          token: ${{ secrets.JINA_DEV_BOT }}
+
+      - name: pull jina-ai/jina repo
+        uses: actions/checkout@v2
+        with:
+          repository: jina-ai/jina
+          path: builder/src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7.7
         env:
-          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+         AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: check if there are images to build
         id: updatestatus
         run: |
+          cd builder
           pip3 install -r builder/requirements.txt
           python3.7 app.py --check-targets && echo "::set-output name=updated::true" || echo "::set-output name=updated::false" || true
         env:
@@ -60,41 +72,45 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow
+        with:
+          repository: jina-ai/hub-builder
+          path: builder
+          token: ${{ secrets.JINA_DEV_BOT }}
+      - run: cd builder && git fetch --prune --unshallow
 
       - name: pull status repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/hub-status
-          path: status
+          path: builder/status
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/api repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/api
-          path: api
+          path: builder/api
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/jina-hub repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/jina-hub
-          path: hub
+          path: builder/hub
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - name: pull jina-ai/jina repo
         uses: actions/checkout@v2
         with:
           repository: jina-ai/jina
-          path: src/jina
+          path: builder/src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7.7
         env:
-          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+         AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: set up Docker Buildx
         id: buildx
@@ -104,10 +120,11 @@ jobs:
 
       - name: build all new images
         run: |
+          cd builder
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip3 install -r builder/requirements.txt
-          python3.7 app.py --bleach-first --reason "nightly build" --update-strategy=nightly
+          python3.7 app.py --bleach-first --reason "fix nightly build" --update-strategy=nightly
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
@@ -115,7 +132,7 @@ jobs:
 
       - name: commit readme and hub badge
         run: |
-          cd status
+          cd builder/status
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
           git add README.md hub-stat.svg
@@ -129,11 +146,11 @@ jobs:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/hub-status
           force: true
-          directory: status/
+          directory: builder/status/
 
       - name: commit build history
         run: |
-          cd api/hub
+          cd builder/api/hub
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
           git add package.json package status.json status
@@ -147,4 +164,4 @@ jobs:
           github_token: ${{ secrets.JINA_DEV_BOT }}
           repository: jina-ai/api
           force: true
-          directory: api/
+          directory: builder/api/
