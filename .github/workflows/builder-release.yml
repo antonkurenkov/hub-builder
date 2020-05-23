@@ -66,6 +66,8 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.8
+        env:
+         AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: set up Docker Buildx
         id: buildx
