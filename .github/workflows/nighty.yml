@@ -55,7 +55,7 @@ jobs:
         with:
           python-version: 3.7.7
         env:
-         AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: check if there are images to build
         id: updatestatus
@@ -110,7 +110,7 @@ jobs:
         with:
           python-version: 3.7.7
         env:
-         AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: set up Docker Buildx
         id: buildx
