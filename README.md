@@ -11,7 +11,7 @@
        alt="tweet button" title="👍Share Jina with your friends on Twitter"></img>
 </a>
 
-Jina Hub Builder is an app for building user generated pod images, testing and publishing them on Docker hub.
+Jina Hub Builder is an app for building user generated pod images, testing and publishing them on Docker Hub.
 
 ![](.github/.README_images/hub-builder-demo.gif)
 
