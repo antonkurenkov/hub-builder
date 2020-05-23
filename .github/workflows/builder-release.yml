@@ -81,7 +81,7 @@ jobs:
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip3 install -r builder/requirements.txt
-          python3.7 app.py --reason "builder update" --update-strategy=on-release
+          python3.7 app.py --bleach-first --reason "builder update" --update-strategy=on-release
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
@@ -130,5 +130,5 @@ jobs:
           FOLDING: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TOC_TITLE: ''
-          TARGET_PATHS: 'README.md'
+          TARGET_PATHS: 'builder/README.md'
           COMMIT_MESSAGE: 'chore(docs): update TOC'

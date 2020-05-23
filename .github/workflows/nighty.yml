@@ -36,10 +36,10 @@ jobs:
           token: ${{ secrets.JINA_DEV_BOT }}
 
       - uses: actions/setup-python@v2
-          with:
-            python-version: 3.7.7
-          env:
-            AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+        with:
+          python-version: 3.7.7
+        env:
+          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: check if there are images to build
         id: updatestatus
@@ -102,7 +102,7 @@ jobs:
           echo ${{ steps.buildx.outputs.platforms }}
           docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           pip3 install -r builder/requirements.txt
-          python3.7 app.py --reason "nightly build" --bleach-first --update-strategy=nightly
+          python3.7 app.py --bleach-first --reason "nightly build" --update-strategy=nightly
         env:
           MONGODB_CREDENTIALS: ${{ secrets.MONGODB_CREDENTIALS }}
           DOCKERHUB_DEVBOT_USER: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
