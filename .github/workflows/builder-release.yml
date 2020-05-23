@@ -124,6 +124,9 @@ jobs:
           force: true
           directory: builder/api/
 
+  toc-update:
+    runs-on: self-hosted
+    steps:
       - uses: technote-space/toc-generator@v2
         with:
           MAX_HEADER_LEVEL: 3
