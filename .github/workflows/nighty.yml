@@ -46,11 +46,11 @@ jobs:
           path: builder/src/jina
           token: ${{ secrets.JINA_DEV_BOT }}
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7.7
-        env:
-          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+#      - uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.7.7
+#        env:
+#          AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
 
       - name: check if there are images to build
         id: updatestatus
