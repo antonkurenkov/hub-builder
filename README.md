@@ -1,7 +1,7 @@
 # Jina Hub Builder (beta)
 
-[![CI](https://github.com/jina-ai/hub-builder/workflows/builder-release/badge.svg?branch=master)](https://github.com/jina-ai/hub-builder/actions?query=workflow%3Aon-release)
-[![CD](https://github.com/jina-ai/hub-builder/workflows/nightly/badge.svg?branch=master)](https://github.com/jina-ai/hub-builder/actions?query=workflow%3Anightly)
+[![CI](https://github.com/antonkurenkov/hub-builder/workflows/builder-release/badge.svg?branch=master)](https://github.com/jina-ai/hub-builder/actions?query=workflow%3Aon-release)
+[![CD](https://github.com/antonkurenkov/hub-builder/workflows/nightly/badge.svg?branch=master)](https://github.com/jina-ai/hub-builder/actions?query=workflow%3Anightly)
 [![Hub Image](https://github.com/jina-ai/hub-status/blob/master/hub-stat.svg?sanitize=true)](https://hubstatus.jina.ai)
 [![Jina](https://github.com/jina-ai/jina/blob/master/.github/badges/license-badge.svg "Jina is licensed under Apache-2.0")](#license)
 [![Jina Docs](https://github.com/jina-ai/jina/blob/master/.github/badges/docs-badge.svg "Checkout our docs and learn Jina")](https://docs.jina.ai)
