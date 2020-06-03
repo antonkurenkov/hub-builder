@@ -1,13 +1,8 @@
 name: nightly
 
 on:
-  push:
-    branches:
-      - fix-runner
-
-#on:
-#  schedule:
-#    - cron: "0 0 * * *"
+  schedule:
+    - cron: "0 0 * * *"
 
 jobs:
 
