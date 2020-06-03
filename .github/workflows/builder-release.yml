@@ -93,41 +93,41 @@ jobs:
           DOCKERHUB_DEVBOT_TOKEN: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
         timeout-minutes: 30
 
-      - name: commit new status readme and badge
-        run: |
-          cd builder/status
-          git config --local user.email "dev-bot@jina.ai"
-          git config --local user.name "Jina Dev Bot"
-          git add README.md hub-stat.svg
-          git commit -qm "chore: update readme and hub badge" -a
-          git show '--stat-count=10' HEAD
-          git config --list
-
-      - name: push status readme and hub badge
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.JINA_DEV_BOT }}
-          repository: jina-ai/hub-status
-          force: true
-          directory: builder/status/
-
-      - name: commit api endpoints
-        run: |
-          cd builder/api/hub
-          git config --local user.email "dev-bot@jina.ai"
-          git config --local user.name "Jina Dev Bot"
-          git add package.json package status.json status
-          git commit -qm "chore: update build history" -a
-          git show '--stat-count=10' HEAD
-          git config --list
-
-      - name: push api endpoints
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.JINA_DEV_BOT }}
-          repository: jina-ai/api
-          force: true
-          directory: builder/api/
+#      - name: commit new status readme and badge
+#        run: |
+#          cd builder/status
+#          git config --local user.email "dev-bot@jina.ai"
+#          git config --local user.name "Jina Dev Bot"
+#          git add README.md hub-stat.svg
+#          git commit -qm "chore: update readme and hub badge" -a
+#          git show '--stat-count=10' HEAD
+#          git config --list
+#
+#      - name: push status readme and hub badge
+#        uses: ad-m/github-push-action@master
+#        with:
+#          github_token: ${{ secrets.JINA_DEV_BOT }}
+#          repository: jina-ai/hub-status
+#          force: true
+#          directory: builder/status/
+#
+#      - name: commit api endpoints
+#        run: |
+#          cd builder/api/hub
+#          git config --local user.email "dev-bot@jina.ai"
+#          git config --local user.name "Jina Dev Bot"
+#          git add package.json package status.json status
+#          git commit -qm "chore: update build history" -a
+#          git show '--stat-count=10' HEAD
+#          git config --list
+#
+#      - name: push api endpoints
+#        uses: ad-m/github-push-action@master
+#        with:
+#          github_token: ${{ secrets.JINA_DEV_BOT }}
+#          repository: jina-ai/api
+#          force: true
+#          directory: builder/api/
 
   toc-update:
     runs-on: self-hosted
