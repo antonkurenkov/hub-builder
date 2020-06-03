@@ -3,7 +3,7 @@ name: builder-release
 on:
   push:
     branches:
-      - master
+      - fix-runner
 
 jobs:
 
